@@ -1,10 +1,18 @@
 package org.thothlab.devilsvault.db.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+
 import java.math.BigDecimal;
 
+@Document("bank_accounts")
 public class BankAccountDB {
+	@Id
 	private int account_number;
 	private String account_type;
+	@Field("external_users_id")
 	private int external_user_id;
 	private BigDecimal balance;
 	private BigDecimal hold;
@@ -38,4 +46,12 @@ public class BankAccountDB {
 	public void setHold(BigDecimal hold) {
 		this.hold = hold;
 	}	
+
+	private CreditAccountDB credit_card;
+	public CreditAccountDB getCredit_card() {
+		return credit_card;
+	}
+	public void setCredit_card(CreditAccountDB credit_card) {
+		this.credit_card = credit_card;
+	}
 }

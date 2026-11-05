@@ -1,52 +1,44 @@
 package org.thothlab.devilsvault.dao.customer;
 
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
 
-import javax.sql.DataSource;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
+import org.thothlab.devilsvault.config.SequenceGenerator;
 import org.thothlab.devilsvault.dao.bankaccount.CreditCardGenerator;
+import org.thothlab.devilsvault.db.model.BankAccountDB;
 import org.thothlab.devilsvault.db.model.CreditAccountDB;
 
-@Repository ("CreditCardDao")
+@Repository("CreditCardDao")
 public class CreditCardDaoImpl {
 
-	@SuppressWarnings("unused")
-	private JdbcTemplate jdbcTemplate;
-	private DataSource dataSource;
-	@Autowired
-	public void setdataSource(DataSource dataSource) {
-		this.dataSource = dataSource;
-		this.jdbcTemplate = new JdbcTemplate(dataSource);
+	private final MongoTemplate mongoTemplate;
+	private final SequenceGenerator sequences;
+
+	public CreditCardDaoImpl(MongoTemplate mongoTemplate, SequenceGenerator sequences) {
+		this.mongoTemplate = mongoTemplate;
+		this.sequences = sequences;
 	}
-	public void createCreditAccount(Integer accountNumber)
-	{
+
+	public void createCreditAccount(Integer accountNumber) {
 		Date date = new Date();
 		Calendar cal = Calendar.getInstance();
-	    cal.setTime(date);
-	    int year = cal.get(Calendar.YEAR);
-	    int month = cal.get(Calendar.MONTH);
-	    cal.set(year, month, 25);
+		cal.setTime(date);
+		int year = cal.get(Calendar.YEAR);
+		int month = cal.get(Calendar.MONTH);
+		cal.set(year, month, 25);
 		java.sql.Date sqldateCycle = new java.sql.Date(cal.getTime().getTime());
-	    cal.set(year, month, 15);
+		cal.set(year, month, 15);
 		java.sql.Date sqldateDue = new java.sql.Date(cal.getTime().getTime());
-		BigInteger credit_card_number;
-		credit_card_number = new BigInteger(CreditCardGenerator.generateMasterCardNumber());
-		while(true)
-		{
-			String query = "SELECT COUNT(*) FROM credit_card_account_details WHERE credit_card_no ='" + credit_card_number + "';";
-			Integer count = jdbcTemplate.queryForObject(query,Integer.class);
-			if(count < 1)
-			{
-				break;
-			}
+		BigInteger credit_card_number = new BigInteger(CreditCardGenerator.generateMasterCardNumber());
+		while (mongoTemplate.exists(Query.query(where("credit_card.credit_card_no").is(credit_card_number)),
+				BankAccountDB.class)) {
 			credit_card_number = new BigInteger(CreditCardGenerator.generateMasterCardNumber());
 		}
 		CreditAccountDB creditaccount = new CreditAccountDB();
@@ -62,41 +54,14 @@ public class CreditCardDaoImpl {
 		creditaccount.setLast_bill_amount(0);
 		creditaccount.setPayment(0);
 		save(creditaccount);
-		
 	}
-	public Boolean save(CreditAccountDB creditaccount)
-	{
-		String query = "INSERT INTO  credit_card_account_details (interest , credit_card_no , available_balance , last_bill_amount , due_date , apr , account_number , cycle_date , current_due_amt , credit_limit , payment ) VALUES (?,?,?,?,?,?,?,?,?,?,?);";
-		Connection con = null;
-		PreparedStatement ps = null;
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(query);
-			ps.setInt(1,creditaccount.getInterest());
-			ps.setLong(2, creditaccount.getCredit_card_number().longValue());
-			ps.setInt(3, creditaccount.getAvailable_balance());
-			ps.setInt(4,creditaccount.getLast_bill_amount());
-			ps.setInt(7,creditaccount.getAccount_number());
-			ps.setInt(9,creditaccount.getCurrent_due_amount());
-			ps.setInt(10,creditaccount.getCredit_limit());
-			ps.setDate(5,creditaccount.getDue_date());
-			ps.setDate(8, creditaccount.getCycle_date());
-			ps.setInt(11,creditaccount.getPayment());
-			ps.setFloat(6,creditaccount.getApr());
-			int out = ps.executeUpdate();
-			if(out !=0){
-				return true;
-			}else return false;
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+
+	/** Embeds the card ({@code credit_card_account_details} row) in its CREDIT bank account document. */
+	public Boolean save(CreditAccountDB creditaccount) {
+		if (creditaccount.getId() == null) {
+			creditaccount.setId(sequences.next("credit_card_account_details"));
 		}
-		return false;
+		return mongoTemplate.updateFirst(Query.query(where("_id").is(creditaccount.getAccount_number())),
+				new Update().set("credit_card", creditaccount), BankAccountDB.class).getMatchedCount() != 0;
 	}
 }

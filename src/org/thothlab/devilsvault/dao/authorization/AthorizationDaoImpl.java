@@ -1,152 +1,89 @@
 package org.thothlab.devilsvault.dao.authorization;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static org.thothlab.devilsvault.dao.MongoCollections.COMPLETED;
+import static org.thothlab.devilsvault.dao.MongoCollections.PENDING;
+
 import java.util.List;
 
-import javax.sql.DataSource;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
+import org.thothlab.devilsvault.config.SequenceGenerator;
+import org.thothlab.devilsvault.dao.MongoCollections;
 import org.thothlab.devilsvault.db.model.Authorization;
 
-@Repository ("AuthorizationDao")
-public class AthorizationDaoImpl implements AthorizationDao{
-	private DataSource dataSource;
-	private JdbcTemplate jdbcTemplate;
-	
-	@Override
-	@Autowired
-	public void setDataSource(DataSource dataSource) {
-		// TODO Auto-generated method stub
-		this.dataSource = dataSource;
-		this.jdbcTemplate = new JdbcTemplate(dataSource);
+/** {@code authorization_pending} / {@code authorization_completed} -> {@code authorizations} with {@code stage}. */
+@Repository("AuthorizationDao")
+public class AthorizationDaoImpl implements AthorizationDao {
+
+	private final MongoTemplate mongoTemplate;
+	private final SequenceGenerator sequences;
+
+	public AthorizationDaoImpl(MongoTemplate mongoTemplate, SequenceGenerator sequences) {
+		this.mongoTemplate = mongoTemplate;
+		this.sequences = sequences;
 	}
+
 	@Override
 	public List<Authorization> getAllPendingAuthorization(int id) {
-		String query = "SELECT * FROM authorization_pending WHERE internal_userID = "+id+"";
-		List<Authorization> authorizationList = jdbcTemplate.query(query, new BeanPropertyRowMapper<Authorization>(Authorization.class));
-		return authorizationList;
+		return mongoTemplate.find(Query.query(where("stage").is(PENDING).and("internal_userID").is(id)), Authorization.class);
 	}
-	
+
 	public List<Authorization> getAllPendingAuthorizationManager() {
-		String query = "SELECT * FROM authorization_pending";
-		List<Authorization> authorizationList = jdbcTemplate.query(query, new BeanPropertyRowMapper<Authorization>(Authorization.class));
-		return authorizationList;
+		return mongoTemplate.find(Query.query(where("stage").is(PENDING)), Authorization.class);
 	}
-	
+
 	public List<Authorization> getAllCompleteAuthorizationManager() {
-		String query = "SELECT * FROM authorization_completed";
-		List<Authorization> authorizationList = jdbcTemplate.query(query, new BeanPropertyRowMapper<Authorization>(Authorization.class));
-		return authorizationList;
+		return mongoTemplate.find(Query.query(where("stage").is(COMPLETED)), Authorization.class);
 	}
 
 	@Override
 	public List<Authorization> getAllCompleteAuthorization(int id) {
-		String query = "SELECT * FROM authorization_completed WHERE internal_userID = "+id+"";
-		List<Authorization> authorizationList = jdbcTemplate.query(query, new BeanPropertyRowMapper<Authorization>(Authorization.class));
-		return authorizationList;
+		return mongoTemplate.find(Query.query(where("stage").is(COMPLETED).and("internal_userID").is(id)), Authorization.class);
 	}
+
 	@Override
 	public boolean isExist(int internal_userID, int external_userID, String auth_Type) {
-		// TODO Auto-generated method stub
-		String query_completed = "SELECT * FROM authorization_completed WHERE internal_userID = "+internal_userID+" AND external_userID = "+external_userID+" AND auth_Type = '"+auth_Type+"'";
-		String query_pending = "SELECT * FROM authorization_pending WHERE internal_userID = "+internal_userID+" AND external_userID = "+external_userID+" AND auth_Type = '"+auth_Type+"'";
-		List<Authorization> completeList = jdbcTemplate.query(query_completed, new BeanPropertyRowMapper<Authorization>(Authorization.class));
-		List<Authorization> pendingList = jdbcTemplate.query(query_pending, new BeanPropertyRowMapper<Authorization>(Authorization.class));
-		if(completeList.size() != 0 || pendingList.size() != 0) return true;
-		else return false;
+		return mongoTemplate.exists(Query.query(where("internal_userID").is(internal_userID).and("external_userID")
+				.is(external_userID).and("auth_Type").is(auth_Type)), Authorization.class);
 	}
+
 	@Override
 	public Boolean save(int internal_userID, int external_userID, String auth_Type) {
-		// TODO Auto-generated method stub
-		String query = "insert into authorization_pending(internal_userID, external_userID, auth_Type) values (?,?,?)";
-		
-		Connection con = null;
-		PreparedStatement ps = null;
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(query);
-			ps.setInt(1, internal_userID);
-			ps.setInt(2, external_userID);
-			ps.setString(3, auth_Type);
-			int out = ps.executeUpdate();
-			if(out !=0){
-				return true;
-			}else return false;
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		return false;
+		Authorization authorization = new Authorization();
+		authorization.setInternal_userID(internal_userID);
+		authorization.setExternal_userID(external_userID);
+		authorization.setAuth_Type(auth_Type);
+		return insert(authorization, PENDING);
 	}
+
 	@Override
 	public boolean deleteByID(int auth_id, String table) {
-		String query = "DELETE FROM "+table+" WHERE auth_id = "+auth_id+"";
-		Connection con = null;
-		PreparedStatement ps = null;
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(query);
-			int out = ps.executeUpdate();
-			if(out !=0){
-				return true;
-			}else return false;
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		return false;
+		return mongoTemplate.remove(Query.query(where("auth_id").is(auth_id).and("stage").is(MongoCollections.stageOf(table))),
+				Authorization.class).getDeletedCount() != 0;
 	}
+
 	@Override
 	public boolean addByID(Authorization request) {
-		String query = "insert into authorization_completed(internal_userID, external_userID, auth_Type) values (?,?,?)";
-		Connection con = null;
-		PreparedStatement ps = null;
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(query);
-			ps.setInt(1, request.getInternal_userID());
-			ps.setInt(2, request.getExternal_userID());
-			ps.setString(3, request.getAuth_Type());
-			int out = ps.executeUpdate();
-			if(out !=0){
-				return true;
-			}else return false;
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		return false;
+		Authorization completed = new Authorization();
+		completed.setInternal_userID(request.getInternal_userID());
+		completed.setExternal_userID(request.getExternal_userID());
+		completed.setAuth_Type(request.getAuth_Type());
+		return insert(completed, COMPLETED);
 	}
+
 	@Override
 	public Authorization getByID(int auth_id) {
-		String query = "SELECT * FROM authorization_pending WHERE auth_id = "+auth_id+"";
-		List<Authorization> authorizationList = jdbcTemplate.query(query, new BeanPropertyRowMapper<Authorization>(Authorization.class));
+		List<Authorization> authorizationList = mongoTemplate
+				.find(Query.query(where("auth_id").is(auth_id).and("stage").is(PENDING)), Authorization.class);
 		return authorizationList.get(0);
 	}
 
-	
-
+	private boolean insert(Authorization authorization, String stage) {
+		authorization.setAuth_id(sequences.next(MongoCollections.AUTHORIZATIONS));
+		authorization.setStage(stage);
+		mongoTemplate.insert(authorization);
+		return true;
+	}
 }

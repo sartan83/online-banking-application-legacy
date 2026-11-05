@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,7 +55,7 @@ public class CustomerDashboardController {
 			creditCard.setExternal_user_id(userID);
 			Customer customer = new Customer();
 			customer.setId(userID);
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			checkingAccount = CustomerDAO.getAccount(customer, checkingAccount, "CHECKING");
 			savingsAccount = CustomerDAO.getAccount(customer, savingsAccount, "SAVINGS");
@@ -94,7 +94,7 @@ public class CustomerDashboardController {
 	@RequestMapping("/customer/userdetails")
 	public ModelAndView UserDetailsContoller(HttpServletRequest request){
 		try{
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			CustomerDAO externalDao = ctx.getBean("customerDAO", CustomerDAO.class);
 			setGlobals(request);
 			Customer customer = externalDao.getCustomer(userID);
@@ -117,7 +117,7 @@ public class CustomerDashboardController {
     public ModelAndView changePasswordInternal(RedirectAttributes redir, @RequestParam("oldpassword") String oldPassword, HttpServletRequest request, @RequestParam("newpassword") String newPassword,@RequestParam("confirmpassword") String confirmPassword) {
 		try{
 			ModelAndView model = new ModelAndView();
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			setGlobals(request);
 			UserAuthenticationDaoImpl userauthenticationDao = ctx.getBean("userAuthenticationDao", UserAuthenticationDaoImpl.class);
 			String message = userauthenticationDao.changePassword(oldPassword, newPassword, confirmPassword, userID,role);

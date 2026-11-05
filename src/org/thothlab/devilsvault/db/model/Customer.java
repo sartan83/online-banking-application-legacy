@@ -1,9 +1,16 @@
 package org.thothlab.devilsvault.db.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+
 import java.math.BigInteger;
 import java.sql.Date;
 
+@Document("external_users")
 public class Customer {
+    @Id
     private int id;
     private String name;
     private String address;
@@ -82,4 +89,12 @@ public class Customer {
     public void setDate_of_birth(String date_of_birth) {
         this.date_of_birth = date_of_birth;
     }
+
+	private java.util.List<Integer> authorized_merchants;
+	public java.util.List<Integer> getAuthorized_merchants() {
+		return authorized_merchants;
+	}
+	public void setAuthorized_merchants(java.util.List<Integer> authorized_merchants) {
+		this.authorized_merchants = authorized_merchants;
+	}
 }

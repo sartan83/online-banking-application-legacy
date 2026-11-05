@@ -1,6 +1,17 @@
 package org.thothlab.devilsvault.db.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+
+@CompoundIndex(name = "stage_auth_id", def = "{'stage': 1, 'auth_id': 1}", unique = true)
+@Document("authorizations")
 public class Authorization {
+	@Id
+	private String mongoId;
+	@Field("auth_id")
 	private int auth_id;
 	private int internal_userID;
 	private int external_userID;
@@ -32,4 +43,19 @@ public class Authorization {
 	}
 	
 	
+
+	private String stage;
+	public String getStage() {
+		return stage;
+	}
+	public void setStage(String stage) {
+		this.stage = stage;
+	}
+
+	public String getMongoId() {
+		return mongoId;
+	}
+	public void setMongoId(String mongoId) {
+		this.mongoId = mongoId;
+	}
 }

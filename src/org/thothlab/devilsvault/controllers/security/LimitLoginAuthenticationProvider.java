@@ -7,6 +7,7 @@ import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.thothlab.devilsvault.dao.user.UserDetailsDao;
 import org.thothlab.devilsvault.db.model.UserAttempts;
 
@@ -15,6 +16,10 @@ import org.thothlab.devilsvault.db.model.UserAttempts;
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
 	UserDetailsDao userDetailsDao;
+
+	public LimitLoginAuthenticationProvider(UserDetailsService userDetailsService) {
+		super(userDetailsService);
+	}
 
 	@Override
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {

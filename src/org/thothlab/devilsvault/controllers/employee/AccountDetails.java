@@ -3,9 +3,9 @@ package org.thothlab.devilsvault.controllers.employee;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,7 +43,7 @@ public class AccountDetails {
 	public ModelAndView SavingAccountInternal(HttpServletRequest request,@RequestParam("savingsPicker") String interval,@RequestParam("extUserID") String extUserID)
 	{
 		try{
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 		       LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 		       DatabaseLog dblog = new DatabaseLog();
 				setGlobals(request);
@@ -51,7 +51,7 @@ public class AccountDetails {
 				savingAccount.setExternal_user_id(Integer.parseInt(extUserID));
 				Customer customer = new Customer();
 				customer.setId(Integer.parseInt(extUserID));
-				ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+				DaoContext ctx = DaoContext.open();
 				ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 				savingAccount = CustomerDAO.getAccount(customer, savingAccount,"SAVINGS");
 				CustomerAccountsDAO sAccountDAO = ctx.getBean("CustomerAccountsDAO",CustomerAccountsDAO.class);
@@ -89,13 +89,13 @@ public class AccountDetails {
 	@RequestMapping(value="/employee/viewcheckingaccount",	method = RequestMethod.POST)
 	public ModelAndView CheckingAccountInternal(HttpServletRequest request,@RequestParam("checkingPicker") String interval,@RequestParam("extUserID") String extUserID){
 		try{
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 		       LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 		       DatabaseLog dblog = new DatabaseLog();
 			BankAccountDB checkingAccount = new BankAccountDB();
 			Customer customer = new Customer();
 			customer.setId(Integer.parseInt(extUserID));
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			checkingAccount = CustomerDAO.getAccount(customer, checkingAccount,"CHECKING");
 			CustomerAccountsDAO sAccountDAO = ctx.getBean("CustomerAccountsDAO",CustomerAccountsDAO.class);

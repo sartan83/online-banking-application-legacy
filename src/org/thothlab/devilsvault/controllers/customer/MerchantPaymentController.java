@@ -1,6 +1,6 @@
 package org.thothlab.devilsvault.controllers.customer;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,9 +10,8 @@ import org.thothlab.devilsvault.controllers.security.ExceptionHandlerClass;
 import org.thothlab.devilsvault.dao.transaction.TransactionDaoImpl;
 import org.thothlab.devilsvault.db.model.Transaction;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.*;
 
@@ -37,7 +36,7 @@ public class MerchantPaymentController {
 
 
     @RequestMapping("customer/merchantpayment")
-    public ModelAndView merchantPayToUser(HttpServletRequest request) throws SQLException, ParseException {
+    public ModelAndView merchantPayToUser(HttpServletRequest request) throws ParseException {
     	try{
     		ModelAndView model = new ModelAndView("customerPages/merchantMakePayment");
             setGlobals(request);
@@ -49,7 +48,7 @@ public class MerchantPaymentController {
             }
 
              //System.out.println(request.getParameter("checkingPicker") + "checkingPicker");
-            ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/jdbc/config/DaoDetails.xml");
+            DaoContext ctx = DaoContext.open();
             TransferDAO transferDAO = ctx.getBean("transferDAO", TransferDAO.class);
             TransactionDaoImpl extTransactionDAO = ctx.getBean("TransactionDao", TransactionDaoImpl.class);
 

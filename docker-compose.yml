@@ -1,0 +1,81 @@
+# DevilsVault on MongoDB 8 (single-node replica set, required for multi-document transactions).
+#   docker compose up --build          -> http://localhost:8080/CSE545-SS/login   (mail UI: http://localhost:8025)
+# Sample data: the legacy MySQL schema + sample rows (migration/sql) are loaded into `legacy-mysql` and copied
+# into MongoDB by migration/migrate.py (`migrator`, runs once, skipped when MongoDB already has users).
+services:
+  mongo:
+    image: ${MONGO_IMAGE:-mongo:8.0}
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo:27017'}]}).ok }"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 5s
+
+  legacy-mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: devilsvault
+    volumes:
+      - ./migration/sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysql", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}", "-e", "SELECT 1 FROM devilsvault.account LIMIT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  migrator:
+    image: python:3.12-slim
+    working_dir: /migration
+    volumes:
+      - ./migration:/migration:ro
+    command:
+      - sh
+      - -c
+      - >-
+        pip install -q --disable-pip-version-check --root-user-action=ignore -r requirements.txt &&
+        python migrate.py --if-empty
+        --mysql mysql://root:${MYSQL_ROOT_PASSWORD:-root}@legacy-mysql:3306/devilsvault
+        --mongo 'mongodb://mongo:27017/devilsvault?replicaSet=rs0'
+    depends_on:
+      mongo:
+        condition: service_healthy
+      legacy-mysql:
+        condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  app:
+    build:
+      context: .
+      args:
+        MAVEN_MIRROR_URL: ${MAVEN_MIRROR_URL:-}
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/devilsvault?replicaSet=rs0
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_AUTH: "false"
+      SMTP_STARTTLS: "false"
+      SMTP_FROM: securebanking.ss4@gmail.com
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+
+volumes:
+  mongo-data:

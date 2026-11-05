@@ -4,13 +4,11 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.net.URL;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
 import javax.net.ssl.HttpsURLConnection;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class VerifyRecaptcha {
 
@@ -24,8 +22,10 @@ public class VerifyRecaptcha {
 		}
 		
 		try{
-		URL obj = new URL(url);
+		URL obj = java.net.URI.create(url).toURL();
 		HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+		con.setConnectTimeout(3000);
+		con.setReadTimeout(3000);
 
 		// add reuqest header
 		con.setRequestMethod("POST");
@@ -56,11 +56,7 @@ public class VerifyRecaptcha {
 		//System.out.println(response.toString());
 		
 		//parse JSON response and return 'success' value
-		JsonReader jsonReader = Json.createReader(new StringReader(response.toString()));
-		JsonObject jsonObject = jsonReader.readObject();
-		jsonReader.close();
-		
-		return jsonObject.getBoolean("success");
+		return new ObjectMapper().readTree(response.toString()).path("success").asBoolean(false);
 		}catch(Exception e){
 			e.printStackTrace();
 			return false;

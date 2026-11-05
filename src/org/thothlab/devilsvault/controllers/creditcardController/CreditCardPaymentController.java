@@ -3,9 +3,9 @@ package org.thothlab.devilsvault.controllers.creditcardController;
 import java.math.BigDecimal;
 import java.text.ParseException;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -75,12 +75,12 @@ public class CreditCardPaymentController {
 			ModelAndView model = new ModelAndView("customerPages/creditPaymentPage");
 			BigDecimal amt = new BigDecimal(amount);
 			
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			CreditCardDOA doa = CustomerDAOHelper.creditCardDAO();
 			CustomerDAO cust_dao = CustomerDAOHelper.customerDAO();
 			BankAccountExternal checkingAccount = new BankAccountExternal();
 			Customer customer = cust_dao.getCustomer(userID);
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			CreditAccount account = doa.getCreditAccount(customer);

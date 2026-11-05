@@ -1,9 +1,20 @@
 package org.thothlab.devilsvault.db.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 
+@CompoundIndex(name = "stage_id", def = "{'stage': 1, 'id': 1}", unique = true)
+@Document("transactions")
 public class Transaction {
+	@Id
+	private String mongoId;
+	@Field("id")
 	private int id;
 	private int payer_id;
 	private int payee_id;
@@ -90,4 +101,19 @@ public class Transaction {
 		this.timestamp_updated = timestamp_updated;
 	}
 	
+
+	private String stage;
+	public String getStage() {
+		return stage;
+	}
+	public void setStage(String stage) {
+		this.stage = stage;
+	}
+
+	public String getMongoId() {
+		return mongoId;
+	}
+	public void setMongoId(String mongoId) {
+		this.mongoId = mongoId;
+	}
 }

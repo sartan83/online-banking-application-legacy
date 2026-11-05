@@ -1,8 +1,8 @@
 package org.thothlab.devilsvault.controllers.employee;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -48,7 +48,7 @@ public class ForgotPasswordController {
 	@RequestMapping(value="verifyemail", method = RequestMethod.POST)
 	public ModelAndView VerifyEmail(HttpServletRequest request, @RequestParam("Email") String email) {
 		try{
-		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+		DaoContext ctx = DaoContext.open();
 		OtpDaoImpl otpdao = ctx.getBean("OtpDaoImpl",OtpDaoImpl.class);
 		String message = otpdao.verifyEmail(email);
 		if (message.equalsIgnoreCase("Cannot generate more OTP, Contact Support !!")){
@@ -72,7 +72,7 @@ public class ForgotPasswordController {
 	@RequestMapping(value="verifyotp", method = RequestMethod.POST)
 	public ModelAndView VerifyOTP(HttpServletRequest request, @RequestParam("otp") String otp) {
 		try{
-		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+		DaoContext ctx = DaoContext.open();
 		OtpDaoImpl otpdao = ctx.getBean("OtpDaoImpl",OtpDaoImpl.class);
 		String email = (String) request.getSession().getAttribute("forgotpassemail");
 		String message = otpdao.verifyOTP(otp, email);
@@ -98,7 +98,7 @@ public class ForgotPasswordController {
 	        try{
 			String username = (String)request.getSession().getAttribute("forgotpassemail");
 	        ModelAndView model = new ModelAndView();
-	        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+	        DaoContext ctx = DaoContext.open();
 	        UserAuthenticationDaoImpl userauthenticationDao = ctx.getBean("userAuthenticationDao", UserAuthenticationDaoImpl.class);
 	        String message = userauthenticationDao.changeForgotPassword(newPassword, confirmPassword, username);
 	        model.setViewName("redirect:/login");

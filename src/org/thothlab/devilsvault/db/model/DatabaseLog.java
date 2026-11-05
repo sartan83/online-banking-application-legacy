@@ -1,7 +1,13 @@
 package org.thothlab.devilsvault.db.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+
 import java.sql.Date;
 
+@Document("system_logs")
 public class DatabaseLog {
 	private String activity;
 	private int userid;
@@ -33,4 +39,21 @@ public class DatabaseLog {
 		this.timestamp = timestamp;
 	}
 	
+
+	@Id
+	private String id;
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	private String scope;
+	public String getScope() {
+		return scope;
+	}
+	public void setScope(String scope) {
+		this.scope = scope;
+	}
 }

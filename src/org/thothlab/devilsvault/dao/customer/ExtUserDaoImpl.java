@@ -1,226 +1,109 @@
 package org.thothlab.devilsvault.dao.customer;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.List;
 
-import javax.sql.DataSource;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
+import org.thothlab.devilsvault.config.SequenceGenerator;
 import org.thothlab.devilsvault.db.model.BankAccountDB;
 import org.thothlab.devilsvault.db.model.BankAccountExternal;
 import org.thothlab.devilsvault.db.model.Customer;
-@Repository ("ExtUserDaoImpl")
-public class ExtUserDaoImpl{
-	@SuppressWarnings("unused")
-	private JdbcTemplate jdbcTemplate;
-	private DataSource dataSource;
-	@Autowired
-	public void setdataSource(DataSource dataSource) {
-		this.dataSource = dataSource;
-		this.jdbcTemplate = new JdbcTemplate(dataSource);
+
+@Repository("ExtUserDaoImpl")
+public class ExtUserDaoImpl {
+
+	private final MongoTemplate mongoTemplate;
+	private final SequenceGenerator sequences;
+
+	public ExtUserDaoImpl(MongoTemplate mongoTemplate, SequenceGenerator sequences) {
+		this.mongoTemplate = mongoTemplate;
+		this.sequences = sequences;
 	}
-	public BankAccountDB getAccount(Customer user,BankAccountDB bankAccount,String accountType)
-	{
-		Connection con = null;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		String sql ="SELECT * FROM  bank_accounts WHERE external_users_id="+user.getId()+" and account_type='"+accountType+"'";
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(sql);
-			rs = ps.executeQuery();
-			while(rs.next())
-			{
-				bankAccount.setAccount_number(rs.getInt("account_number"));
-				bankAccount.setAccount_type(rs.getString("account_type"));
-				bankAccount.setHold(rs.getBigDecimal("hold"));
-				bankAccount.setBalance(rs.getBigDecimal("balance").subtract(bankAccount.getHold()));
-				bankAccount.setExternal_user_id(rs.getInt("external_users_id"));
-			}
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				rs.close();
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+
+	private List<BankAccountDB> accounts(Customer user, String accountType) {
+		return mongoTemplate.find(
+				Query.query(where("external_users_id").is(user.getId()).and("account_type").is(accountType)),
+				BankAccountDB.class);
+	}
+
+	/** Available balance is reported as balance - hold, as in the legacy DAO. */
+	public BankAccountDB getAccount(Customer user, BankAccountDB bankAccount, String accountType) {
+		for (BankAccountDB row : accounts(user, accountType)) {
+			bankAccount.setAccount_number(row.getAccount_number());
+			bankAccount.setAccount_type(row.getAccount_type());
+			bankAccount.setHold(row.getHold());
+			bankAccount.setBalance(row.getBalance().subtract(row.getHold()));
+			bankAccount.setExternal_user_id(row.getExternal_user_id());
 		}
 		return bankAccount;
-     }
-	
-	public Double getSavingsBalance(Customer user)
-	{
-		Connection con = null;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		String sql ="SELECT balance FROM  bank_accounts WHERE external_users_id="+user.getId()+" and account_type='SAVINGS'";
+	}
+
+	public Double getSavingsBalance(Customer user) {
 		Double balance = 0.0d;
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(sql);
-			rs = ps.executeQuery();
-			while(rs.next())
-			{
-				balance = rs.getDouble("balance");
-			}
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				rs.close();
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+		for (BankAccountDB row : accounts(user, "SAVINGS")) {
+			balance = row.getBalance().doubleValue();
 		}
 		return balance;
-     }
-	public Double getCheckingBalance(Customer user)
-	{
-		Connection con = null;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		String sql ="SELECT balance FROM  bank_accounts WHERE external_users_id="+user.getId()+" and account_type='CHECKINGS'";
+	}
+
+	public Double getCheckingBalance(Customer user) {
 		Double balance = 0.0d;
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(sql);
-			rs = ps.executeQuery();
-			while(rs.next())
-			{
-				balance = rs.getDouble("balance");
-			}
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				rs.close();
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+		for (BankAccountDB row : accounts(user, "CHECKINGS")) {
+			balance = row.getBalance().doubleValue();
 		}
 		return balance;
-     }
-	
-	public Customer setExternalUser(String name,String address,BigInteger phone,String email, String date_of_birth,String ssn)
-    {
-        Customer userDetails = new Customer();
-        userDetails.setName(name);
-        userDetails.setAddress(address);
-        userDetails.setDate_of_birth(date_of_birth);
-        userDetails.setEmail(email);
-        userDetails.setPhone(phone);
-        userDetails.setSsn(ssn);
-        return userDetails;
-    }
-	
-	public Integer createUser(Customer userdetails)
-    {
-        String query = "INSERT INTO external_users ( id , name , address ,city,state,country,pincode, phone , email , date_of_birth , ssn ) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
-        Connection con = null;
-        PreparedStatement ps = null;
-        try{
-            con = dataSource.getConnection();
-            ps = con.prepareStatement(query);
-            ps.setInt(1, userdetails.getId());
-            ps.setString(2, userdetails.getName());
-            ps.setString(3, userdetails.getAddress());
-            ps.setString(4, "sdsdsad");
-            ps.setString(5, "sdsdsad");
-            ps.setString(6, "sdsdsad");
-            ps.setInt(7, 123);
-            ps.setLong(8, userdetails.getPhone().longValue());
-            ps.setString(9, userdetails.getEmail());
-            ps.setString(10, userdetails.getDate_of_birth());
-            ps.setString(11, userdetails.getSsn());
-            int out = ps.executeUpdate();
-            if(out !=0){
-                 String queryID = "SELECT id from external_users where email= '" + userdetails.getEmail() + "'"; 
-                    Integer id = jdbcTemplate.queryForList(queryID, Integer.class).get(0);
-                    return id;
-            }else return 0;
-        }catch(SQLException e){
-            e.printStackTrace();
-        }finally{
-            try {
-                ps.close();
-                con.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return 0;
-    }
-	
-	public BankAccountDB getCreditCardBalance(BankAccountDB account)
-	{
-		boolean status=false;
-		Connection con = null;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		String query_CCbalance ="select available_balance from credit_card_account_details where account_number = "+account.getAccount_number();
-		System.out.println("credit card account num - "+account.getAccount_number());
-		try
-		{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(query_CCbalance);
-			rs = ps.executeQuery();
-			rs.next();
-			account.setBalance(rs.getBigDecimal(1));
-				
-		}catch(SQLException e){
-			status = false;
+	}
+
+	public Customer setExternalUser(String name, String address, BigInteger phone, String email, String date_of_birth,
+			String ssn) {
+		Customer userDetails = new Customer();
+		userDetails.setName(name);
+		userDetails.setAddress(address);
+		userDetails.setDate_of_birth(date_of_birth);
+		userDetails.setEmail(email);
+		userDetails.setPhone(phone);
+		userDetails.setSsn(ssn);
+		return userDetails;
+	}
+
+	public Integer createUser(Customer userdetails) {
+		if (userdetails.getId() == 0) {
+			userdetails.setId(sequences.next("external_users"));
+		}
+		userdetails.setCity("sdsdsad");
+		userdetails.setState("sdsdsad");
+		userdetails.setCountry("sdsdsad");
+		userdetails.setPincode(123);
+		try {
+			mongoTemplate.insert(userdetails);
+		} catch (DuplicateKeyException e) {
 			e.printStackTrace();
-		}finally{
-			try {
-					ps.close();
-					con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+			return 0;
+		}
+		return mongoTemplate.find(Query.query(where("email").is(userdetails.getEmail())), Customer.class).get(0).getId();
+	}
+
+	public BankAccountDB getCreditCardBalance(BankAccountDB account) {
+		BankAccountDB row = mongoTemplate.findById(account.getAccount_number(), BankAccountDB.class);
+		if (row != null && row.getCredit_card() != null && row.getCredit_card().getAvailable_balance() != null) {
+			account.setBalance(new BigDecimal(row.getCredit_card().getAvailable_balance()));
 		}
 		return account;
-     }
-	
-	public BankAccountExternal getAccount(Customer user,BankAccountExternal bankAccount,String accountType)
-	{
-		Connection con = null;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		String sql ="SELECT * FROM  bank_accounts WHERE external_users_id="+user.getId()+" and account_type='"+accountType+"'";
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(sql);
-			rs = ps.executeQuery();
-			while(rs.next())
-			{
-				bankAccount.setAccount_number(rs.getInt("account_number"));
-				bankAccount.setAccount_type(rs.getString("account_type"));
-				bankAccount.setBalance(rs.getFloat("balance"));
-				bankAccount.setExternal_users_id(rs.getInt("external_users_id"));
-			}
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				rs.close();
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+	}
+
+	public BankAccountExternal getAccount(Customer user, BankAccountExternal bankAccount, String accountType) {
+		for (BankAccountDB row : accounts(user, accountType)) {
+			bankAccount.setAccount_number(row.getAccount_number());
+			bankAccount.setAccount_type(row.getAccount_type());
+			bankAccount.setBalance(row.getBalance().floatValue());
+			bankAccount.setExternal_users_id(row.getExternal_user_id());
 		}
 		return bankAccount;
-     }
+	}
 }

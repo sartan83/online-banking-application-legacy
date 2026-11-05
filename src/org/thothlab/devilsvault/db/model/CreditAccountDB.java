@@ -1,11 +1,17 @@
 package org.thothlab.devilsvault.db.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+
 import java.math.BigInteger;
 import java.sql.Date;
 
 public class CreditAccountDB {
 	private Integer id;
 	private Integer interest;
+	@Field("credit_card_no")
 	private BigInteger credit_card_number;
 	private Integer available_balance;
 	private Integer last_bill_amount;
@@ -13,6 +19,7 @@ public class CreditAccountDB {
 	private float apr;
 	private Integer account_number;
 	private Date cycle_date;
+	@Field("current_due_amt")
 	private Integer current_due_amount;
 	private Integer credit_limit;
 	private Integer payment;

@@ -1,141 +1,69 @@
 package org.thothlab.devilsvault.dao.transaction;
 
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.sql.DataSource;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
+import org.thothlab.devilsvault.dao.MongoCollections;
 import org.thothlab.devilsvault.db.model.BankAccountDB;
-
-import org.thothlab.devilsvault.dao.databaseMappers.*;
+import org.thothlab.devilsvault.db.model.Customer;
+import org.thothlab.devilsvault.db.model.Transaction;
+import org.thothlab.devilsvault.db.model.UserAuthentication;
 
 @Repository("transferDAO")
 public class TransferDAO {
 
-	private DataSource dataSource;
-	private JdbcTemplate jdbcTemplate;
+	private final MongoTemplate mongoTemplate;
 
-	@Autowired
-	public void setDataSource(DataSource dataSource) {
-
-		this.dataSource = dataSource;
-		this.jdbcTemplate = new JdbcTemplate(dataSource);
+	public TransferDAO(MongoTemplate mongoTemplate) {
+		this.mongoTemplate = mongoTemplate;
 	}
 
-	/*
-	 * public List<BankAccount> getPayerAccounts(int payerID) {
-	 *
-	 * String query = "select * from bankaccount WHERE payer_id = " + payerID ;
-	 * List<Integer> bankAccounts = jdbcTemplate.query(query, new
-	 * AccountsMapper()); return relatedAccounts; }
-	 */
-
 	public String getUserNames(int userID) {
-
-		String query = "Select name from external_users where id=" + userID;
-		String user_name = jdbcTemplate.query(query, new AccountUserName()).get(0);
-		return user_name;
+		return customer(userID).getName();
 	}
 
 	public void getPayerAccounts(int accountNumber, List<String> userAccounts) {
-
-		// String query = "select account_number from bank_accounts where
-		// external_users_id="+payerID;
-		// List<Integer> payerAccounts = jdbcTemplate.query(query, new
-		// AccountsMapper());
-
-		/*
-		 * List<String> accountNumberType = new ArrayList<>(); for(String
-		 * element: userAccounts){
-		 */String fetchAccountType = "select account_type from bank_accounts where account_number=" + accountNumber;
-		String accountType = jdbcTemplate.query(fetchAccountType, new AccountUserName()).get(0);
-
-		// accountNumberType.add(element+":"+accountType);
-		userAccounts.add(accountNumber + ":" + accountType);
-		// System.out.println("payer:"+element);
-		/* } */
-
+		userAccounts.add(accountNumber + ":" + account(accountNumber).getAccount_type());
 	}
 
 	public List<Integer> getMultipleAccounts(Integer payerID) {
-
-		String query = "Select account_number from bank_accounts where account_type <> \'CREDIT\' AND external_users_id=" + payerID;
-		List<Integer> userMultipleAccounts = jdbcTemplate.query(query, new AccountsMapper());
-
-		return userMultipleAccounts;
+		return accountNumbers(Query.query(where("external_users_id").is(payerID).and("account_type").ne("CREDIT")));
 	}
 
-	/*
-	 * Returns payee account (Transfer to)
-	 */
+	/** Payee accounts (Transfer to): every account of users this payer already sent external transfers to. */
 	public void getRelatedAccounts(int payerID, List<String> populatedPayeeAccounts) {
-
-		String query = "select payee_id from transaction_completed WHERE transaction_type = \'externalFundTfr\' AND payer_id ="
-				+ payerID;
-
-		System.out.println(query);
-		List<Integer> relatedAccounts = jdbcTemplate.query(query, new AccountsMapper());
-
-		Set<Integer> deduplicatedList = new HashSet<>();
-		deduplicatedList.addAll(relatedAccounts);
-		relatedAccounts.clear();
-		relatedAccounts.addAll(deduplicatedList);
-
-		List<String> userNameAccountNumber = new ArrayList<>();
-
-		for (Integer listAccountElement : relatedAccounts) {
-			System.out.println(listAccountElement);
+		Query query = Query.query(where("stage").is(MongoCollections.COMPLETED).and("transaction_type")
+				.is("externalFundTfr").and("payer_id").is(payerID));
+		Set<Integer> relatedAccounts = new LinkedHashSet<>();
+		for (Transaction transaction : mongoTemplate.find(query, Transaction.class)) {
+			relatedAccounts.add(transaction.getPayee_id());
 		}
-
 		for (Integer listAccountElement : relatedAccounts) {
-
-			System.out.println("-<<" + listAccountElement);
-			String fetchAccountName = "Select external_users_id from bank_accounts where account_number="
-					+ listAccountElement;
-
-			System.out.println(fetchAccountName);
-
-			int external_user_id = jdbcTemplate.query(fetchAccountName, new AccountsMapper()).get(0);
-			System.out.println("Get username for : " + external_user_id);
+			int external_user_id = account(listAccountElement).getExternal_user_id();
 			String userName = getUserNames(external_user_id);
 			String username_account = userName + ":" + listAccountElement;
 			if (populatedPayeeAccounts.contains(username_account))
 				continue;
-			String selectAccountNumbers = "select account_number from bank_accounts where external_users_id="
-					+ external_user_id;
-			List<Integer> userBankAccounts = jdbcTemplate.query(selectAccountNumbers, new AccountsMapper());
-
-			for (Integer bankAccountElements : userBankAccounts) {
-				System.out.println("+" + bankAccountElements);
-				userNameAccountNumber.add(userName + ":" + bankAccountElements);
+			for (Integer bankAccountElements : accountNumbers(Query.query(where("external_users_id").is(external_user_id)))) {
 				populatedPayeeAccounts.add(userName + ":" + bankAccountElements);
-
 			}
-			System.out.println("--\n");
 		}
-
 	}
 
 	public boolean validateAmount(int payerAccountNumber, BigDecimal amount) {
-		// String fetchAccountBalance = "Select balance from bank_accounts where
-		// account_number="+payerAccountNumber;
-		String sql = "Select balance,hold from bank_accounts where account_number = ?";
-
-		BankAccountDB ba = (BankAccountDB) jdbcTemplate.queryForObject(sql,
-				new Object[] { payerAccountNumber }, new BankAccountMapper());
-
+		BankAccountDB ba = account(payerAccountNumber);
 		if (amount.compareTo((ba.getBalance().subtract(ba.getHold()))) == 1
 				|| amount.compareTo(new BigDecimal("0")) == -1) {
 			return false;
@@ -144,248 +72,144 @@ public class TransferDAO {
 	}
 
 	public int fetchAccountNumber(String modeOfTransfer, String inputMode) {
-		// TODO Auto-generated method stub
-		String sql = null;
-		boolean email = false;
-		if (modeOfTransfer.equalsIgnoreCase("EMAIL")) {
-			sql = "select id from external_users where email='" + inputMode + "'";
-			email = true;
-		} else {
-			sql = "select id from external_users where phone='" + inputMode + "'";
-		}
-		System.out.println("abcbd" + inputMode);
-		System.out.println("sql" + sql);
-
-		int account_number = -1;
 		try {
-			// int external_user_id = (Integer)jdbcTemplate.queryForObject(sql,
-			// new Object[]{inputMode},Integer.class);
-
-			String query = null;
-			if (email) {
-				query = "select COUNT(*) from external_users where email='" + inputMode + "'";
+			Query byContact;
+			if (modeOfTransfer.equalsIgnoreCase("EMAIL")) {
+				byContact = Query.query(where("email").is(inputMode));
 			} else {
-				query = "select COUNT(*) from external_users where phone='" + inputMode + "'";
+				byContact = Query.query(where("phone").is(new BigInteger(inputMode.trim())));
 			}
-
-			int counts = jdbcTemplate.query(query, new AccountsMapper()).get(0);
-			if (counts != 0) {
-				int external_user_id = jdbcTemplate.query(sql, new AccountsMapper()).get(0);
-
-				String account_number_query = "select account_number from bank_accounts where external_users_id="
-						+ external_user_id + " " + "and account_type='CHECKING' ";
-				account_number = jdbcTemplate.query(account_number_query, new AccountsMapper()).get(0);
-
-			} else {
+			Customer customer = mongoTemplate.findOne(byContact, Customer.class);
+			if (customer == null) {
 				return -1;
 			}
+			return accountNumbers(Query.query(where("external_users_id").is(customer.getId()).and("account_type")
+					.is("CHECKING"))).get(0);
 		} catch (Exception e) {
-
-			System.out.println("exceoption");
-
-			// System.out.println(id+":id");
+			e.printStackTrace();
 		}
-		return account_number;
-
+		return -1;
 	}
 
 	public boolean checkAccountExists(int account_number) {
-
-		try {
-			// int external_user_id = (Integer)jdbcTemplate.queryForObject(sql,
-			// new Object[]{inputMode},Integer.class);
-
-			String query = "select COUNT(*) from bank_accounts where account_number=" + account_number;
-			System.out.println(query);
-
-			int counts = jdbcTemplate.query(query, new AccountsMapper()).get(0);
-			if (counts != 0)
-				return true;
-			else
-				return false;
-
-		} catch (Exception e) {
-
-			System.out.println("exceoption");
-
-			// System.out.println(id+":id");
-		}
-		return false;
-
+		return mongoTemplate.exists(Query.query(where("_id").is(account_number)), BankAccountDB.class);
 	}
 
 	public void updateHold(int payerAccountNumber, BigDecimal amount) {
-		String updateStmt = "Update bank_accounts set hold = hold + ? where account_number = ?";
-		// int external_user_id = jdbcTemplate.query(updateHoldField, new
-		// AccountsMapper()).get(0);
-		jdbcTemplate.update(updateStmt, new Object[] { amount, payerAccountNumber });
+		mongoTemplate.updateFirst(Query.query(where("_id").is(payerAccountNumber)), new Update().inc("hold", amount),
+				BankAccountDB.class);
 	}
-	
-	public List<String> getUserAccounts(int merchantID) throws SQLException {
 
-		Connection con = dataSource.getConnection();
-		PreparedStatement ps = null;
-		Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-				ResultSet.CONCUR_UPDATABLE);
-
-
-		String queryName = "select id, name from external_users where id in (select external_user_id from authorized_merchants_users where merchant_id = " + merchantID + ")";
-		System.out.println(queryName);
+	/** Customers that authorised the given merchant ({@code authorized_merchants_users}). */
+	public List<String> getUserAccounts(int merchantID) {
 		List<String> userAccounts = new ArrayList<>();
-		ResultSet rs = st.executeQuery(queryName);
-		while (rs.next()) {
-			userAccounts.add(rs.getString(2) + ":" + rs.getInt(1));
-		}
-
-		for (int i = 0; i < userAccounts.size(); i++) {
-			System.out.println(userAccounts.get(i));
+		for (Customer customer : mongoTemplate.find(Query.query(where("authorized_merchants").is(merchantID)),
+				Customer.class)) {
+			userAccounts.add(customer.getName() + ":" + customer.getId());
 		}
 		return userAccounts;
-
 	}
-	
-	public HashMap<String,String> processPayment(int merchantID, int sentAmount, int userID) throws SQLException {
-	    HashMap<String,String> sendToController = new HashMap<>();
-	        String query = "select account_number from bank_accounts where external_users_id = " + userID + " and account_type = \"CREDIT\"";
-	        //System.out.println(query+"fhsdkhfksd");
-	        Connection con = dataSource.getConnection();
-	        PreparedStatement ps = null;
-	        Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-	                ResultSet.CONCUR_UPDATABLE);
-	        ResultSet rs = st.executeQuery(query);
-	        int accountNumber = -1;
-	        rs.first();
-	        accountNumber = rs.getInt("account_number");
-	        //System.out.println(accountNumber);
-	        //System.out.println("found acocunt number"+accountNumber);
-	        //getting MinimumValidAmount
-	        if((accountNumber==-1) ){
-	            sendToController.put("userAccount","-1");
-	        }
-	        else{
-	            sendToController.put("userAccount",""+accountNumber);
-	        }
-	        String getMinimumValidAmount = "select (credit_limit - available_balance) as balance from credit_card_account_details where account_number = " + accountNumber;
-	        //System.out.println(getMinimumValidAmount);
-	        rs = st.executeQuery(getMinimumValidAmount);
-	        int minimumBalance=-1;
-	        rs.first();
-	        minimumBalance = rs.getInt("balance");
-	        if(sentAmount > minimumBalance){
-	            sendToController.put("accepted","-1");
-	        }else{
-	            sendToController.put("accepted","1");
-	        }
-	        //System.out.println("minimumBalance"+minimumBalance);
-	        String getMerchantCheckingsAccount = "select account_number from bank_accounts where external_users_id ="+ merchantID+" and account_type in ( \"CHECKINGS\",\"CHECKING\") ";
-	        //System.out.println("getting merchant checking accounts:"+getMerchantCheckingsAccount);
-	        rs = st.executeQuery(getMerchantCheckingsAccount);
-	        int merchantAccountNumber = -1;
-	        rs.next();
-	        merchantAccountNumber = rs.getInt("account_number");
-	        //System.out.println("merchant Account Number:"+merchantAccountNumber);
-	        if((merchantAccountNumber==-1)){
-	            sendToController.put("merchantCheckingAccount","-1");
-	        }
-	        else{
-	            sendToController.put("merchantCheckingAccount",""+merchantAccountNumber);
-	        }
-	        return sendToController;
-	    }
-	
-	public List<String> getNewMerchantAccounts(int userID) throws SQLException {
 
-		Connection con = dataSource.getConnection();
-		PreparedStatement ps = null;
-		Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-				ResultSet.CONCUR_UPDATABLE);
-
-//		String queryName = "select name,id from external_users where merchant =1 and id not in (select merchant_id from authorized_merchants_users where external_user_id = "+userID+")";
-
-		String queryName = "SELECT external_users.id, external_users.name\n" +
-				"FROM external_users\n" +
-				"INNER JOIN users\n" +
-				"ON external_users.email=users.username and users.role = \"ROLE_MERCHANT\" and (id not in (select merchant_id from authorized_merchants_users where external_user_id = " + userID + "))";
-		System.out.println(queryName);
-		List<String> merchantAccounts = new ArrayList<>();
-		ResultSet rs = st.executeQuery(queryName);
-		while (rs.next()) {
-			merchantAccounts.add(rs.getString(2) + ":" + rs.getInt(1));
+	public HashMap<String, String> processPayment(int merchantID, int sentAmount, int userID) {
+		HashMap<String, String> sendToController = new HashMap<>();
+		BankAccountDB credit = mongoTemplate.findOne(
+				Query.query(where("external_users_id").is(userID).and("account_type").is("CREDIT")), BankAccountDB.class);
+		int accountNumber = credit == null ? -1 : credit.getAccount_number();
+		sendToController.put("userAccount", "" + accountNumber);
+		int minimumBalance = -1;
+		if (credit != null && credit.getCredit_card() != null) {
+			minimumBalance = value(credit.getCredit_card().getCredit_limit())
+					- value(credit.getCredit_card().getAvailable_balance());
 		}
+		if (sentAmount > minimumBalance) {
+			sendToController.put("accepted", "-1");
+		} else {
+			sendToController.put("accepted", "1");
+		}
+		List<Integer> merchantAccounts = accountNumbers(Query.query(
+				where("external_users_id").is(merchantID).and("account_type").in("CHECKINGS", "CHECKING")));
+		sendToController.put("merchantCheckingAccount", merchantAccounts.isEmpty() ? "-1" : "" + merchantAccounts.get(0));
+		return sendToController;
+	}
 
-		for (int i = 0; i < merchantAccounts.size(); i++) {
-			System.out.println(merchantAccounts.get(i));
+	public List<String> getNewMerchantAccounts(int userID) {
+		List<Integer> authorized = authorizedMerchants(userID);
+		List<String> merchantAccounts = new ArrayList<>();
+		for (Customer merchant : merchants()) {
+			if (!authorized.contains(merchant.getId())) {
+				merchantAccounts.add(merchant.getName() + ":" + merchant.getId());
+			}
 		}
 		return merchantAccounts;
 	}
-	
-	public boolean addMerchantToUser(int merchantID, int userID) throws SQLException {
 
-		String query = "insert into authorized_merchants_users values(" + merchantID + "," + userID + ")";
-		System.out.println(query);
-		Connection con = dataSource.getConnection();
-		Statement st = con.createStatement();
-		int i = st.executeUpdate(query);
-		if (i == 1) {
-			return true;
-		}
-		System.out.println(i);
-		return false;
+	public boolean addMerchantToUser(int merchantID, int userID) {
+		return mongoTemplate.updateFirst(Query.query(where("_id").is(userID)),
+				new Update().addToSet("authorized_merchants", merchantID), Customer.class).getMatchedCount() == 1;
 	}
-	
-	public boolean deleteMerchantConnection(int userID, int merchantID) throws SQLException {
 
-
-		String query = "delete from authorized_merchants_users where merchant_id = " + merchantID + " and external_user_id = " + userID;
-		System.out.println(query);
-		Connection con = dataSource.getConnection();
-		Statement st = con.createStatement();
-		int i = st.executeUpdate(query);
-		if (i == 1) {
-			return true;
-		}
-		System.out.println("deleted ");
-		return false;
+	public boolean deleteMerchantConnection(int userID, int merchantID) {
+		return mongoTemplate.updateFirst(Query.query(where("_id").is(userID).and("authorized_merchants").is(merchantID)),
+				new Update().pull("authorized_merchants", merchantID), Customer.class).getModifiedCount() == 1;
 	}
-	
-	public List<String> getExistingMerchantAccounts(int userID) throws SQLException {
-		Connection con = dataSource.getConnection();
-		PreparedStatement ps = null;
-		Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-				ResultSet.CONCUR_UPDATABLE);
 
-//		String queryName = "select merchant_id,NAME from authorized_merchants_users where external_user_id = "+userID;
-
-		String queryName = "(SELECT external_users.id, external_users.name\n" +
-				"FROM external_users\n" +
-				"INNER JOIN users\n" +
-				"ON external_users.email=users.username and users.role = \"ROLE_MERCHANT\" and external_users.id in (select merchant_id from authorized_merchants_users where external_user_id = " + userID + "))";
-		System.out.println(queryName);
+	public List<String> getExistingMerchantAccounts(int userID) {
+		List<Integer> authorized = authorizedMerchants(userID);
 		List<String> merchantAccounts = new ArrayList<>();
-		ResultSet rs = st.executeQuery(queryName);
-		while (rs.next()) {
-			merchantAccounts.add(rs.getString(2) + ":" + rs.getInt(1));
-		}
-
-		for (int i = 0; i < merchantAccounts.size(); i++) {
-			System.out.println("Existing merchants" + merchantAccounts.get(i));
+		for (Customer merchant : merchants()) {
+			if (authorized.contains(merchant.getId())) {
+				merchantAccounts.add(merchant.getName() + ":" + merchant.getId());
+			}
 		}
 		return merchantAccounts;
 	}
-	
-	 public Boolean updateAvailableBalance(BigDecimal amount, int payerAccount) throws SQLException {
-		    String query = "update credit_card_account_details set available_balance = available_balance + "+amount+" where account_number = "+payerAccount+"";
-		        System.out.println(query);
-		        Connection con = dataSource.getConnection();
-		        Statement st = con.createStatement();
-		        int i = st.executeUpdate(query);
-		        System.out.println(i+"what it returns ");
-		        if (i == 1) {
-		            return true;
-		        }
-		        return false;
-		    }
 
+	public Boolean updateAvailableBalance(BigDecimal amount, int payerAccount) {
+		int delta = amount.setScale(0, RoundingMode.HALF_UP).intValue();
+		return mongoTemplate.updateFirst(Query.query(where("_id").is(payerAccount).and("credit_card").exists(true)),
+				new Update().inc("credit_card.available_balance", delta), BankAccountDB.class).getModifiedCount() == 1;
+	}
 
+	private List<Customer> merchants() {
+		List<String> merchantEmails = new ArrayList<>();
+		for (UserAuthentication user : mongoTemplate.find(Query.query(where("role").is("ROLE_MERCHANT")),
+				UserAuthentication.class)) {
+			merchantEmails.add(user.getUsername());
+		}
+		return mongoTemplate.find(Query.query(where("email").in(merchantEmails)), Customer.class);
+	}
 
+	private List<Integer> authorizedMerchants(int userID) {
+		Customer customer = mongoTemplate.findById(userID, Customer.class);
+		return customer == null || customer.getAuthorized_merchants() == null ? List.of()
+				: customer.getAuthorized_merchants();
+	}
+
+	private Customer customer(int id) {
+		Customer customer = mongoTemplate.findById(id, Customer.class);
+		if (customer == null) {
+			throw new IndexOutOfBoundsException("No external user " + id);
+		}
+		return customer;
+	}
+
+	private BankAccountDB account(int accountNumber) {
+		BankAccountDB account = mongoTemplate.findById(accountNumber, BankAccountDB.class);
+		if (account == null) {
+			throw new IndexOutOfBoundsException("No bank account " + accountNumber);
+		}
+		return account;
+	}
+
+	private List<Integer> accountNumbers(Query query) {
+		List<Integer> numbers = new ArrayList<>();
+		for (BankAccountDB account : mongoTemplate.find(query, BankAccountDB.class)) {
+			numbers.add(account.getAccount_number());
+		}
+		return numbers;
+	}
+
+	private static int value(Integer v) {
+		return v == null ? 0 : v;
+	}
 }

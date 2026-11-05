@@ -2,7 +2,7 @@
 
 package org.thothlab.devilsvault.controllers.customer;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,8 +10,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.thothlab.devilsvault.controllers.security.ExceptionHandlerClass;
 import org.thothlab.devilsvault.dao.transaction.TransferDAO;
 
-import javax.servlet.http.HttpServletRequest;
-import java.sql.SQLException;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +38,7 @@ public class AuthorizeMerchantController {
     }
 
     @RequestMapping("/customer/authorizemerchants")
-    public ModelAndView addMerchants(HttpServletRequest request) throws SQLException {
+    public ModelAndView addMerchants(HttpServletRequest request) {
         setGlobals(request);
         try{
         	ModelAndView logoutModel = new ModelAndView("redirect:" + "/logout");
@@ -50,7 +49,7 @@ public class AuthorizeMerchantController {
          Boolean result = false;
          Boolean deleted = false;
 
-         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/jdbc/config/DaoDetails.xml");
+         DaoContext ctx = DaoContext.open();
          TransferDAO transferDAO = ctx.getBean("transferDAO", TransferDAO.class);
 
          int payerId = userID;

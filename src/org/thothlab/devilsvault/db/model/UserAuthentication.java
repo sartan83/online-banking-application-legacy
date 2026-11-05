@@ -1,6 +1,13 @@
 package org.thothlab.devilsvault.db.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+
+@Document("users")
 public class UserAuthentication {
+    @Id
     private String username;
     private String password;
     private int enabled;
@@ -58,4 +65,13 @@ public class UserAuthentication {
         this.role = role;
     }
 
+
+	@Field("login_attempts")
+	private UserAttempts loginAttempts;
+	public UserAttempts getLoginAttempts() {
+		return loginAttempts;
+	}
+	public void setLoginAttempts(UserAttempts loginAttempts) {
+		this.loginAttempts = loginAttempts;
+	}
 }
