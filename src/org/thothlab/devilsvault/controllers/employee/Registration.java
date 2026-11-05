@@ -3,9 +3,9 @@ package org.thothlab.devilsvault.controllers.employee;
 import java.math.BigInteger;
 import java.util.HashMap;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -59,7 +59,7 @@ public class Registration {
         String date_of_birth = newuser.getDate_of_birth().toString();
         String ssn = newuser.getSsn();
         HashMap<String,String> passwords = new HashMap<String,String>();
-		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+		DaoContext ctx = DaoContext.open();
         UserAuthenticationDaoImpl userauthenticationdaoimpl = ctx.getBean("userAuthenticationDao", UserAuthenticationDaoImpl.class);
         InternalUserDaoImpl internaluserDao = ctx.getBean("EmployeeDAOForInternal",InternalUserDaoImpl.class);
 	Boolean isValidated = true;
@@ -112,7 +112,7 @@ public class Registration {
         		internaluserDao.save(internaluser);
         	}
         	userauthenticationdaoimpl.sendEmailToUser(newuser.getEmail(), passwords.get("rawPassword"));
-        	ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+        	DaoContext ctx_log = DaoContext.open();
             LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
             DatabaseLog dblog = new DatabaseLog();
 
@@ -155,7 +155,7 @@ public class Registration {
         String date_of_birth = newuser.getDate_of_birth().toString();
         String ssn = newuser.getSsn();
         HashMap<String,String> passwords = new HashMap<String,String>();
-		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+		DaoContext ctx = DaoContext.open();
         UserAuthenticationDaoImpl userauthenticationdaoimpl = ctx.getBean("userAuthenticationDao", UserAuthenticationDaoImpl.class);
         ExtUserDaoImpl externaluserDao = ctx.getBean("ExtUserDaoImpl",ExtUserDaoImpl.class);
         BankAccountDaoImpl bankaccountDao = ctx.getBean("bankAccountDao",BankAccountDaoImpl.class);

@@ -1,191 +1,134 @@
 package org.thothlab.devilsvault.dao.transaction;
 
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
 import java.text.ParseException;
 import java.util.List;
 
-import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
+import org.thothlab.devilsvault.config.SequenceGenerator;
+import org.thothlab.devilsvault.dao.MongoCollections;
+import org.thothlab.devilsvault.db.model.BankAccountDB;
 import org.thothlab.devilsvault.db.model.Transaction;
 
-import com.mysql.jdbc.Statement;
-
+/** {@code transaction_pending} / {@code transaction_completed} -> {@code transactions} with {@code stage}. */
 @Repository("TransactionDao")
 public class TransactionDaoImpl implements TransactionDao {
-	private DataSource dataSource;
-	private JdbcTemplate jdbcTemplate;
 
-	@Override
+	protected MongoTemplate mongoTemplate;
+	protected SequenceGenerator sequences;
+
 	@Autowired
-	public void setDataSource(DataSource dataSource) {
-		this.dataSource = dataSource;
-		this.jdbcTemplate = new JdbcTemplate(dataSource);
+	public void setMongo(MongoTemplate mongoTemplate, SequenceGenerator sequences) {
+		this.mongoTemplate = mongoTemplate;
+		this.sequences = sequences;
 	}
 
 	public Transaction createExternalTransaction(int payerAccountNumber, BigDecimal amount, int payeeAccountNumber,
-			String description, String transactionType) throws ParseException{
+			String description, String transactionType) throws ParseException {
 		Transaction extTransfer = new Transaction();
-
 		extTransfer.setPayer_id(payerAccountNumber);
 		extTransfer.setPayee_id(payeeAccountNumber);
 		extTransfer.setAmount(amount);
 		extTransfer.setDescription(description);
 		extTransfer.setTransaction_type(transactionType);
-
-		/*
-		 * eptpModeOfTransfer eptpinputMode eptpselectPayerAccount
-		 * eptpinputAmount
-		 */
-
 		extTransfer.setHashvalue("");
-
 		extTransfer.setStatus("pending");
 		extTransfer.setApprover("");
-		if(amount.compareTo(new BigDecimal("1000")) == 1){
-			extTransfer.setCritical(true);			
-		}
-		else{
+		if (amount.compareTo(new BigDecimal("1000")) == 1) {
+			extTransfer.setCritical(true);
+		} else {
 			extTransfer.setCritical(false);
 		}
-		
-		/*java.util.Date currentDateTime = new java.util.Date();
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		String currentTime = df.format(currentDateTime);*/
 		java.sql.Timestamp createdDateTime = new java.sql.Timestamp(new java.util.Date().getTime());
 		extTransfer.setTimestamp_created(createdDateTime);
 		extTransfer.setTimestamp_updated(createdDateTime);
-
 		return extTransfer;
 	}
 
-	
-	
-	
+	/**
+	 * INSERT with a fresh id (set on the argument). Pending and completed share one sequence so that
+	 * {@link #saveToCompleted} can keep the pending id without colliding with an existing completed one.
+	 */
 	@Override
 	public Boolean save(Transaction transaction, String type) {
-		String query = "insert into " + type
-				+ "(payer_id,payee_id,amount,hashvalue,transaction_type,description,status,approver,critical,timestamp_created,timestamp_updated) values (?,?,?,?,?,?,?,?,?,?,?)";
-		Connection con = null;
-		PreparedStatement ps = null;
-		try {
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-			ps.setInt(1, transaction.getPayer_id());
-			ps.setInt(2, transaction.getPayee_id());
-			ps.setBigDecimal(3, transaction.getAmount());
-			ps.setString(4, transaction.getHashvalue());
-			ps.setString(5, transaction.getTransaction_type());
-			ps.setString(6, transaction.getDescription());
-			ps.setString(7, transaction.getStatus());
-			ps.setString(8, transaction.getApprover());
-			ps.setBoolean(9, transaction.isCritical());
-			ps.setTimestamp(10, transaction.getTimestamp_created());
-			ps.setTimestamp(11, transaction.getTimestamp_updated());
-			int out = ps.executeUpdate();
-			if (out != 0) {
-				ResultSet rs = ps.getGeneratedKeys();
-				rs.next();
-				//System.out.println("ID----" + rs.getInt(1));
-				transaction.setId(rs.getInt(1));
-				//ps.et
-				return true;
-			} else
-				return false;
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		return false;
+		transaction.setId(sequences.next(MongoCollections.TRANSACTIONS));
+		return insert(transaction, type);
 	}
 
 	@Override
 	public List<Transaction> getById(int id, String table) {
-		String query = "SELECT * FROM " + table + " WHERE id = " + id;
-		List<Transaction> transactionList = jdbcTemplate.query(query, new BeanPropertyRowMapper<Transaction>(Transaction.class));
-		return transactionList;
+		return mongoTemplate.find(byId(id, table), Transaction.class);
 	}
 
 	@Override
 	public void update(Transaction employer) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public boolean deleteById(int id, String type) {
-		Object[] parameters = { id };
-		int[] queryType = { Types.INTEGER };
-		String query = "DELETE FROM " + type + " WHERE id = ?";
-		int i = jdbcTemplate.update(query, parameters, queryType);
-		if (i <= 0) {
+		return mongoTemplate.remove(byId(id, type), Transaction.class).getDeletedCount() > 0;
+	}
+
+	/** INSERT keeping the transaction id (pending -> completed move). */
+	public Boolean saveToCompleted(Transaction transaction, String type) {
+		return insert(transaction, type);
+	}
+
+	public void updatePayerBalance(int payerAccountNumber, BigDecimal amount) {
+		incAccount(payerAccountNumber, "balance", amount.negate());
+	}
+
+	public void updatePayeeBalance(int payeeAccountNumber, BigDecimal amount) {
+		incAccount(payeeAccountNumber, "balance", amount);
+	}
+
+	protected Query byId(int id, String table) {
+		return Query.query(where("stage").is(MongoCollections.stageOf(table)).and("id").is(id));
+	}
+
+	protected Boolean insert(Transaction transaction, String type) {
+		Transaction copy = copyOf(transaction);
+		copy.setStage(MongoCollections.stageOf(type));
+		try {
+			mongoTemplate.insert(copy);
+			return true;
+		} catch (DuplicateKeyException e) {
+			e.printStackTrace();
 			return false;
 		}
-		return true;
-	}
-	
-	public Boolean saveToCompleted(Transaction transaction, String type) {
-		System.out.println("Completed id : " + transaction.getId());
-		String query = "insert into " + type
-				+ "(id,payer_id,payee_id,amount,hashvalue,transaction_type,description,status,approver,critical,timestamp_created,timestamp_updated) values (?,?,?,?,?,?,?,?,?,?,?,?)";
-		Connection con = null;
-		PreparedStatement ps = null;
-		try {
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(query);
-			ps.setInt(1, transaction.getId());
-			ps.setInt(2, transaction.getPayer_id());
-			ps.setInt(3, transaction.getPayee_id());
-			ps.setBigDecimal(4, transaction.getAmount());
-			ps.setString(5, transaction.getHashvalue());
-			ps.setString(6, transaction.getTransaction_type());
-			ps.setString(7, transaction.getDescription());
-			ps.setString(8, transaction.getStatus());
-			ps.setString(9, transaction.getApprover());
-			ps.setBoolean(10, transaction.isCritical());
-			ps.setTimestamp(11, transaction.getTimestamp_created());
-			ps.setTimestamp(12, transaction.getTimestamp_updated());
-			int out = ps.executeUpdate();
-			if (out != 0) {
-				return true;
-			} else
-				return false;
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		return false;
-	}
-	
-	public void updatePayerBalance(int payerAccountNumber, BigDecimal amount){
-		String updateStmt = "Update bank_accounts set balance = balance - ? where account_number = ?";
-		jdbcTemplate.update(updateStmt, new Object[] {amount, payerAccountNumber});
-	}
-    
-    public void updatePayeeBalance(int payeeAccountNumber, BigDecimal amount){
-		String updateStmt = "Update bank_accounts set balance = balance + ? where account_number = ?";
-		jdbcTemplate.update(updateStmt, new Object[] {amount, payeeAccountNumber});
 	}
 
+	protected void incAccount(int accountNumber, String field, BigDecimal amount) {
+		mongoTemplate.updateFirst(Query.query(where("_id").is(accountNumber)), new Update().inc(field, amount),
+				BankAccountDB.class);
+	}
 
+	protected void incCreditCard(int accountNumber, String field, int amount) {
+		mongoTemplate.updateFirst(Query.query(where("_id").is(accountNumber).and("credit_card").exists(true)),
+				new Update().inc("credit_card." + field, amount), BankAccountDB.class);
+	}
+
+	private static Transaction copyOf(Transaction t) {
+		Transaction c = new Transaction();
+		c.setId(t.getId());
+		c.setPayer_id(t.getPayer_id());
+		c.setPayee_id(t.getPayee_id());
+		c.setAmount(t.getAmount());
+		c.setHashvalue(t.getHashvalue());
+		c.setTransaction_type(t.getTransaction_type());
+		c.setDescription(t.getDescription());
+		c.setStatus(t.getStatus());
+		c.setApprover(t.getApprover());
+		c.setCritical(t.isCritical());
+		c.setTimestamp_created(t.getTimestamp_created());
+		c.setTimestamp_updated(t.getTimestamp_updated());
+		return c;
+	}
 }

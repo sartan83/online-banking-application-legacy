@@ -1,76 +1,41 @@
 package org.thothlab.devilsvault.dao.log;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
 import java.util.List;
 
-import javax.sql.DataSource;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 import org.thothlab.devilsvault.db.model.DatabaseLog;
 
-@Repository ("DatabaseLogDao")
-public class LogDaoImpl implements LogDao{
-	private DataSource dataSource;
-	private JdbcTemplate jdbcTemplate;
-	
-	@Override
-	@Autowired
-	public void setDataSource(DataSource dataSource) {
-		// TODO Auto-generated method stub	
-		this.dataSource = dataSource;
-		this.jdbcTemplate = new JdbcTemplate(dataSource);
+/** {@code internal_log} / {@code external_log} -> {@code system_logs} with {@code scope}. */
+@Repository("DatabaseLogDao")
+public class LogDaoImpl implements LogDao {
+
+	private final MongoTemplate mongoTemplate;
+
+	public LogDaoImpl(MongoTemplate mongoTemplate) {
+		this.mongoTemplate = mongoTemplate;
 	}
 
 	@Override
 	public Boolean save(DatabaseLog log, String tablename) {
-		// TODO Auto-generated method stub
-		String query = "insert into " + tablename + " (activity, userid, details, timestamp) values (?,?,?,?)";
-		
-		Connection con = null;
-		PreparedStatement ps = null;
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(query);
-			ps.setString(1,log.getActivity());
-			ps.setInt(2, log.getUserid());
-			ps.setString(3, log.getDetails());
-			ps.setDate(4, log.getTimestamp());
-			int out = ps.executeUpdate();
-			if(out !=0){
-				return true;
-			}else return false;
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		return false;
+		log.setScope(tablename.replace("_log", ""));
+		mongoTemplate.insert(log);
+		return true;
 	}
 
 	@Override
-    public List<DatabaseLog> getByUserId(int userid, String type) {
-        // TODO Auto-generated method stub
-        String query = "SELECT * FROM " + type + "_log WHERE userid = " + userid;
-        List<DatabaseLog> logList = jdbcTemplate.query(query, new BeanPropertyRowMapper<DatabaseLog>(DatabaseLog.class));
-        return logList;
-    }
-	
+	public List<DatabaseLog> getByUserId(int userid, String type) {
+		return mongoTemplate.find(Query.query(where("scope").is(type).and("userid").is(userid)), DatabaseLog.class);
+	}
+
 	@Override
-    public List<DatabaseLog> getLogs(String type) {
-        // TODO Auto-generated method stub
-        String query = "SELECT * FROM " + type + "_log ORDER BY timestamp DESC LIMIT 50";
-        List<DatabaseLog> logList = jdbcTemplate.query(query, new BeanPropertyRowMapper<DatabaseLog>(DatabaseLog.class));
-        return logList;
-    }
-	
+	public List<DatabaseLog> getLogs(String type) {
+		return mongoTemplate.find(
+				Query.query(where("scope").is(type)).with(Sort.by(Sort.Direction.DESC, "timestamp")).limit(50),
+				DatabaseLog.class);
+	}
 }

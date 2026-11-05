@@ -6,9 +6,9 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,7 +51,7 @@ public class CustomerTransferFundsController {
 		try{
 			setGlobals(request);
 			ModelAndView model = new ModelAndView("customerPages/transferFunds");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			TransferDAO transferDAO = ctx.getBean("transferDAO", TransferDAO.class);
 			int payerId = userID;
 			List<Integer> currentUserAccounts = transferDAO.getMultipleAccounts(payerId);
@@ -84,7 +84,7 @@ public class CustomerTransferFundsController {
 		try{
 			setGlobals(request);
 			ModelAndView model = new ModelAndView("customerPages/transferFunds");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			TransferDAO transferDAO = ctx.getBean("transferDAO", TransferDAO.class);
 			int payerId = userID;
 			List<Integer> currentUserAccounts = transferDAO.getMultipleAccounts(payerId);
@@ -110,7 +110,7 @@ public class CustomerTransferFundsController {
 		try{
 			setGlobals(request);
 			ModelAndView model = new ModelAndView("customerPages/transferFunds");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			TransferDAO transferDAO = ctx.getBean("transferDAO", TransferDAO.class);
 			int payerId = userID;
 			List<Integer> currentUserAccounts = transferDAO.getMultipleAccounts(payerId);
@@ -141,7 +141,7 @@ public class CustomerTransferFundsController {
 			System.out.println("------------");
 			// TransferDAO transferDAO = CustomerDAOHelper.transferDAO();
 			ModelAndView model = new ModelAndView("customerPages/transferConfirmation");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			TransferDAO transferDAO = ctx.getBean("transferDAO", TransferDAO.class);
 			// System.out.println(request.getParameter("etpdatetimepicker_result"));
 			String amount_str = request.getParameter("etpinputAmount");
@@ -264,7 +264,7 @@ public class CustomerTransferFundsController {
 		try{
 			List<String> userAccounts = (List<String>) request.getSession().getAttribute("userAccounts");
 			ModelAndView model = new ModelAndView("customerPages/transferConfirmation");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			TransferDAO transferDAO = ctx.getBean("transferDAO", TransferDAO.class);
 
 			setGlobals(request);
@@ -358,7 +358,7 @@ public class CustomerTransferFundsController {
 			String modeOfTransfer = request.getParameter("eptpModeOfTransfer");
 			String inputMode = request.getParameter("eptpinputMode");
 			// TransferDAO transferDAO = CustomerDAOHelper.transferDAO();
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			TransferDAO transferDAO = ctx.getBean("transferDAO", TransferDAO.class);
 			ModelAndView model = new ModelAndView("customerPages/transferConfirmation");
 			//Check if payer account input is in the expected format
@@ -450,7 +450,7 @@ public class CustomerTransferFundsController {
 	@RequestMapping(value = "/customer/verifyTransactionOTP", method = RequestMethod.POST)
 	public ModelAndView verifyTransactionOTP(HttpServletRequest request, @RequestParam("otpdata") String otp) throws ParseException {
 		try{
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			setGlobals(request);
 			TransactionDaoImpl extTransactionDAO = ctx.getBean("TransactionDao", TransactionDaoImpl.class);
 			TransferDAO transferDAO = ctx.getBean("transferDAO", TransferDAO.class);

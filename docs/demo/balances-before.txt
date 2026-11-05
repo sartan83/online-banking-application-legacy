@@ -1,0 +1,18 @@
+[
+  {
+    _id: 1001,
+    external_users_id: 1,
+    account_type: 'CHECKING',
+    balance: Decimal128('5000.00'),
+    hold: Decimal128('0.00'),
+    _class: 'org.thothlab.devilsvault.db.model.BankAccountDB'
+  },
+  {
+    _id: 1004,
+    external_users_id: 2,
+    account_type: 'CHECKING',
+    balance: Decimal128('1200.00'),
+    hold: Decimal128('0.00'),
+    _class: 'org.thothlab.devilsvault.db.model.BankAccountDB'
+  }
+]

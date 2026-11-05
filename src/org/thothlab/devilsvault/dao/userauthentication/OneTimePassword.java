@@ -142,7 +142,7 @@ public class OneTimePassword {
 		 try
 		 {
 			result = OneTimePassword.generateOTP(code, 20, 6, false, 20);
-			System.out.println(result);
+			
 			return result;
 			
 		 }

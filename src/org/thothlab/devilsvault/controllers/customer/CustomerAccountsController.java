@@ -1,13 +1,12 @@
 package org.thothlab.devilsvault.controllers.customer;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,7 +53,7 @@ public class CustomerAccountsController {
 			savingAccount.setExternal_user_id(userID);
 			Customer customer = new Customer();
 			customer.setId(userID);
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			savingAccount = CustomerDAO.getAccount(customer, savingAccount,"SAVINGS");
 			CustomerAccountsDAO sAccountDAO = ctx.getBean("CustomerAccountsDAO",CustomerAccountsDAO.class);
@@ -91,7 +90,7 @@ public class CustomerAccountsController {
 			BankAccountDB checkingAccount = new BankAccountDB();
 			Customer customer = new Customer();
 			customer.setId(userID);
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			checkingAccount = CustomerDAO.getAccount(customer, checkingAccount,"CHECKING");
 			CustomerAccountsDAO sAccountDAO = ctx.getBean("CustomerAccountsDAO",CustomerAccountsDAO.class);
@@ -124,8 +123,7 @@ public class CustomerAccountsController {
 	
 	@RequestMapping(value ="/customer/addMoney")
 	public ModelAndView addMoney(HttpServletRequest request,@RequestParam("amount") BigDecimal amount
-	,@RequestParam("accountType") String accountType)throws SQLException
-	{
+	,@RequestParam("accountType") String accountType) {
 		setGlobals(request);
 		try{
 			BankAccountDB account = new BankAccountDB();
@@ -135,7 +133,7 @@ public class CustomerAccountsController {
 			customer.setId(userID);
 			String modelName = "";
 			String errorMessage = "";
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			account = CustomerDAO.getAccount(customer, account,accountType);
 			savingsAccount = CustomerDAO.getAccount(customer, savingsAccount,"SAVINGS");
@@ -184,8 +182,7 @@ public class CustomerAccountsController {
 	}
 	@RequestMapping(value ="/customer/withdrawMoney")
 	public ModelAndView withdrawMoney(HttpServletRequest request,@RequestParam("amount") BigDecimal amount
-	,@RequestParam("accountType") String accountType) throws SQLException
-	{
+	,@RequestParam("accountType") String accountType) {
 		setGlobals(request);
 		try{
 			BankAccountDB account = new BankAccountDB();
@@ -195,7 +192,7 @@ public class CustomerAccountsController {
 			customer.setId(userID);
 			String modelName = "";
 			String errorMessage = "";
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			account = CustomerDAO.getAccount(customer, account,accountType);
 			savingsAccount = CustomerDAO.getAccount(customer, savingsAccount,"SAVINGS");
@@ -255,7 +252,7 @@ public class CustomerAccountsController {
 			savingsAccount.setExternal_user_id(userID);
 			Customer customer = new Customer();
 			customer.setId(userID);
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			checkingAccount = CustomerDAO.getAccount(customer, checkingAccount, "CHECKING");
 			savingsAccount = CustomerDAO.getAccount(customer, savingsAccount, "SAVINGS");
@@ -280,7 +277,7 @@ public class CustomerAccountsController {
 			savingsAccount.setExternal_user_id(userID);
 			Customer customer = new Customer();
 			customer.setId(userID);
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			checkingAccount = CustomerDAO.getAccount(customer, checkingAccount, "CHECKING");
 			savingsAccount = CustomerDAO.getAccount(customer, savingsAccount, "SAVINGS");
@@ -306,7 +303,7 @@ public class CustomerAccountsController {
 			savingsAccount.setExternal_user_id(userID);
 			Customer customer = new Customer();
 			customer.setId(userID);
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			checkingAccount = CustomerDAO.getAccount(customer, checkingAccount, "CHECKING");
 			savingsAccount = CustomerDAO.getAccount(customer, savingsAccount, "SAVINGS");
@@ -331,7 +328,7 @@ public class CustomerAccountsController {
 			BankAccountDB checkingAccount = new BankAccountDB();
 			Customer customer = new Customer();
 			customer.setId(userID);
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExtUserDaoImpl CustomerDAO = ctx.getBean("ExtUserDaoImpl", ExtUserDaoImpl.class);
 			savingAccount = CustomerDAO.getAccount(customer, savingAccount,"SAVINGS");
 			checkingAccount = CustomerDAO.getAccount(customer, savingAccount,"CHECKING");
@@ -350,7 +347,7 @@ public class CustomerAccountsController {
 	@RequestMapping(value="/customer/processrequestexternal", method = RequestMethod.POST)
     public ModelAndView PendingRequestRejectContoller(HttpServletRequest request,RedirectAttributes redir, @RequestParam("requestID") String requestID, @RequestParam("action") String action){
         try{
-        	ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+        	DaoContext ctx = DaoContext.open();
             setGlobals(request);
             ModelAndView model = new ModelAndView();
             String msg = "";
@@ -378,7 +375,7 @@ public class CustomerAccountsController {
     public ModelAndView PendingRequestContoller(HttpServletRequest request){
        try{
     	   setGlobals(request);
-           ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+           DaoContext ctx = DaoContext.open();
           ExternalRequestDaoImpl externalRequestDao = ctx.getBean("externalRequestDao", ExternalRequestDaoImpl.class);
           ModelAndView model = new ModelAndView("customerPages/PendingRequest");
           List<Request> external_list =externalRequestDao.getAllRequestToApprove(userID);
@@ -399,11 +396,11 @@ public class CustomerAccountsController {
     @RequestMapping(value="/customer/addrequest", method = RequestMethod.POST)
     public ModelAndView modifyDetails(RedirectAttributes redir,@RequestParam("requestType") String requestType, HttpServletRequest request,@RequestParam("newValue") String newValue) {
          try{
-        	 ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+        	 DaoContext ctx = DaoContext.open();
              CustomerDAO customerDAO = ctx.getBean("customerDAO", CustomerDAO.class);
              InternalRequestDaoImpl internalrequestDao = ctx.getBean("internalRequestDao", InternalRequestDaoImpl.class);
-             Customer customer = customerDAO.getCustomer(this.userID);
              setGlobals(request);
+             Customer customer = customerDAO.getCustomer(this.userID);
              ModelAndView model = new ModelAndView("redirect:/customer/userdetails");
              if(internalrequestDao.validateRequest(userID, requestType, "external_request_pending"))
              {

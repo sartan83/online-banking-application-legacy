@@ -1,212 +1,150 @@
 package org.thothlab.devilsvault.dao.customer;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
-import javax.sql.DataSource;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.MongoTransactionManager;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
-import org.thothlab.devilsvault.dao.databaseMappers.BankAccountMapper;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.thothlab.devilsvault.config.SequenceGenerator;
+import org.thothlab.devilsvault.dao.MongoCollections;
 import org.thothlab.devilsvault.db.model.BankAccount;
 import org.thothlab.devilsvault.db.model.BankAccountDB;
-import org.thothlab.devilsvault.db.model.BankAccountExternal;
 import org.thothlab.devilsvault.db.model.Customer;
 import org.thothlab.devilsvault.db.model.Transaction;
 
-@Repository ("CustomerAccountsDAO")
-public class CustomerAccountsDAO{
-	private JdbcTemplate jdbcTemplate;
-	private DataSource dataSource;
-	@Autowired
-	public void setdataSource(DataSource dataSource) {
-		this.dataSource = dataSource;
-		this.jdbcTemplate = new JdbcTemplate(dataSource);
+@Repository("CustomerAccountsDAO")
+public class CustomerAccountsDAO {
+
+	private final MongoTemplate mongoTemplate;
+	private final SequenceGenerator sequences;
+	private final TransactionTemplate transactionTemplate;
+
+	public CustomerAccountsDAO(MongoTemplate mongoTemplate, SequenceGenerator sequences,
+			MongoTransactionManager transactionManager) {
+		this.mongoTemplate = mongoTemplate;
+		this.sequences = sequences;
+		this.transactionTemplate = new TransactionTemplate(transactionManager);
 	}
-	public List<Transaction> getTransactionLines(int account_num,int interval)
-	{
-		Connection con = null;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		Transaction TransactionLine = new Transaction();
-		List<Transaction> TransactionLines = new ArrayList<Transaction>(); 
-		String transaction_completed ="SELECT * FROM transaction_completed WHERE (payer_id="+account_num+" OR payee_id = "+account_num
-				+") AND (timestamp_updated between DATE_SUB(NOW(), INTERVAL "+interval+" MONTH) AND NOW()) ORDER BY timestamp_updated DESC";
-		String transaction_pending ="SELECT * FROM transaction_pending WHERE (payer_id="+account_num+" OR payee_id = "+account_num
-				+") AND (timestamp_updated between DATE_SUB(NOW(), INTERVAL "+interval+" MONTH) AND NOW()) ORDER BY timestamp_updated DESC";
-		System.out.println(transaction_pending);
-		try{
-			con = dataSource.getConnection();
-			ps = con.prepareStatement(transaction_pending);
-			rs = ps.executeQuery();
-			while(rs.next())
-			{	
-				TransactionLine = new Transaction();		
-				TransactionLine.setDescription(rs.getString("description"));
-				TransactionLine.setStatus(rs.getString("status"));
-				TransactionLine.setApprover(rs.getString("approver"));
-				int payee_id = rs.getInt("payee_id");
-				int payer_id = rs.getInt("payer_id");
-				BigDecimal amount = rs.getBigDecimal("amount");
-				TransactionLine.setAmount(amount);
-				TransactionLine.setPayee_id(payee_id);
-				TransactionLine.setPayer_id(payer_id);
-				TransactionLine.setTimestamp_updated(rs.getTimestamp("timestamp_updated"));
+
+	/** Pending then completed transactions of the account within the last {@code interval} months, newest first. */
+	public List<Transaction> getTransactionLines(int account_num, int interval) {
+		Date now = new Date();
+		Date from = Date.from(ZonedDateTime.now().minusMonths(interval).toInstant());
+		List<Transaction> TransactionLines = new ArrayList<Transaction>();
+		for (String stage : new String[] { MongoCollections.PENDING, MongoCollections.COMPLETED }) {
+			Criteria criteria = new Criteria().andOperator(where("stage").is(stage),
+					new Criteria().orOperator(where("payer_id").is(account_num), where("payee_id").is(account_num)),
+					where("timestamp_updated").gte(from).lte(now));
+			for (Transaction row : mongoTemplate.find(
+					Query.query(criteria).with(Sort.by(Sort.Direction.DESC, "timestamp_updated")), Transaction.class)) {
+				Transaction TransactionLine = new Transaction();
+				TransactionLine.setDescription(row.getDescription());
+				TransactionLine.setStatus(row.getStatus());
+				TransactionLine.setApprover(row.getApprover());
+				TransactionLine.setAmount(row.getAmount());
+				TransactionLine.setPayee_id(row.getPayee_id());
+				TransactionLine.setPayer_id(row.getPayer_id());
+				TransactionLine.setTimestamp_updated(row.getTimestamp_updated());
 				TransactionLines.add(TransactionLine);
-			}
-			ps.close();
-			rs.close();
-			ps = con.prepareStatement(transaction_completed);
-			rs = ps.executeQuery();
-			while(rs.next())
-			{	
-				TransactionLine = new Transaction();		
-				TransactionLine.setDescription(rs.getString("description"));
-				TransactionLine.setStatus(rs.getString("status"));
-				TransactionLine.setApprover(rs.getString("approver"));
-				int payee_id = rs.getInt("payee_id");
-				int payer_id = rs.getInt("payer_id");
-				BigDecimal amount = rs.getBigDecimal("amount");
-				TransactionLine.setAmount(amount);
-				TransactionLine.setPayee_id(payee_id);
-				TransactionLine.setPayer_id(payer_id);
-				TransactionLine.setTimestamp_updated(rs.getTimestamp("timestamp_updated"));
-				TransactionLines.add(TransactionLine);
-			}
-		}catch(SQLException e){
-			e.printStackTrace();
-		}finally{
-			try {
-				rs.close();
-				ps.close();
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
 			}
 		}
-		///System.out.println("transaction" + TransactionLines.size());
-		return TransactionLines;     }   
-	
+		return TransactionLines;
+	}
+
 	public BankAccount getAccount(int accountNumber) {
-		String query = "SELECT * FROM bank_accounts where account_number = " + accountNumber;
-		List<Object> accList =  jdbcTemplate.query(query, new BankAccountMapper());
-		return (BankAccount) accList.get(0);
-	
-     }
-	public String getEmailID(Integer userID)
-	{
-		 String query = "SELECT email from external_users where id= '" + userID + "'"; 
-	        String email = jdbcTemplate.queryForList(query, String.class).get(0);
-	        return email;
+		BankAccountDB row = mongoTemplate.findById(accountNumber, BankAccountDB.class);
+		if (row == null) {
+			throw new IndexOutOfBoundsException("No bank account " + accountNumber);
+		}
+		BankAccount account = new BankAccount();
+		account.setAccountNumber(row.getAccount_number());
+		account.setAccountType(accountType(row.getAccount_type()));
+		account.setOwner(mongoTemplate.findById(row.getExternal_user_id(), Customer.class));
+		return account;
 	}
-	
-	public boolean addMoney(Customer user,BankAccountDB account,Transaction transaction,BigDecimal amount,String accountType) throws SQLException
-	{
-		boolean status=false;
-		Connection con = null;
-		PreparedStatement ps = null;
-		java.sql.Timestamp createdDateTime = new java.sql.Timestamp(new java.util.Date().getTime());
-		String query_AddToPending = "INSERT INTO transaction_pending (payer_id, payee_id,amount, hashvalue,transaction_type,description,status,approver,critical,timestamp_created,timestamp_updated) values (?,?,?,?,?,?,?,?,?,?,?)";
-		try
-		{
-			con = dataSource.getConnection();
-			con.setAutoCommit(false);
-			ps = con.prepareStatement(query_AddToPending,Statement.RETURN_GENERATED_KEYS);
-			ps.setInt(1, account.getAccount_number());
-			ps.setInt(2, account.getAccount_number());
-			ps.setBigDecimal(3, amount);
-			ps.setString(4,"hasvalue");
-			ps.setString(5,"creditfunds");
-			ps.setString(6,"Deposit money to account");
-			ps.setString(7,"pending");
-			ps.setString(8,"External user");
-			ps.setInt(9, 0);
-			ps.setTimestamp(10,createdDateTime);
-			ps.setTimestamp(11,createdDateTime);
-			int out =ps.executeUpdate();
-			System.out.println("first query");
-			 if (out != 0) {
-	                ResultSet rs = ps.getGeneratedKeys();
-	                rs.next();
-	                System.out.println("ID----" + rs.getInt(1));
-	                transaction.setId(rs.getInt(1));
-			 }
-			
-			con.commit();
-			status =true;
-			
-		}catch(SQLException e){
-			con.rollback();
-			status = false;
-			e.printStackTrace();
-		}finally{
-			try {
-					ps.close();
-					con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		return status;
-     }
 
-	public boolean withdrawMoney(Customer user,BankAccountDB account,Transaction transaction,BigDecimal amount,String accountType) throws SQLException
-	{
-		boolean status=false;
-		Connection con = null;
-		PreparedStatement ps = null;
-		java.sql.Timestamp createdDateTime = new java.sql.Timestamp(new java.util.Date().getTime());
-		String query_addBalance ="update bank_accounts set hold = hold + "+amount+" WHERE external_users_id="+user.getId()+" and account_type='"+accountType+"'";
-		String query_AddToPending = "INSERT INTO transaction_pending (payer_id, payee_id,amount, hashvalue,transaction_type,description,status,approver,critical,timestamp_created,timestamp_updated) values (?,?,?,?,?,?,?,?,?,?,?)";
-		try
-		{
-			con = dataSource.getConnection();
-			con.setAutoCommit(false);
-			ps = con.prepareStatement(query_AddToPending,Statement.RETURN_GENERATED_KEYS);
-			ps.setInt(1, account.getAccount_number());
-			ps.setInt(2, account.getAccount_number());
-			ps.setBigDecimal(3, amount);
-			ps.setString(4,"hasvalue");
-			ps.setString(5,"debitfunds");
-			ps.setString(6,"Withdrawal of money from account");
-			ps.setString(7,"pending");
-			ps.setString(8,"External user");
-			ps.setInt(9, 0);
-			ps.setTimestamp(10,createdDateTime);
-			ps.setTimestamp(11,createdDateTime);
-			int out =ps.executeUpdate();
-			System.out.println("first query");
-			 if (out != 0) {
-	                ResultSet rs = ps.getGeneratedKeys();
-	                rs.next();
-	                System.out.println("ID----" + rs.getInt(1));
-	                transaction.setId(rs.getInt(1));
-			 }
-			 ps.close();
-			ps = con.prepareStatement(query_addBalance);
-			ps.executeUpdate();
-			con.commit();
-			
-			status =true;
-		}catch(SQLException e){
-			con.rollback();
-			status = false;
-			e.printStackTrace();
-		}finally{
-			try {
-					ps.close();
-					con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+	public String getEmailID(Integer userID) {
+		Customer customer = mongoTemplate.findById(userID, Customer.class);
+		if (customer == null) {
+			throw new IndexOutOfBoundsException("No external user " + userID);
 		}
-		return status;
-     }
+		return customer.getEmail();
+	}
+
+	public boolean addMoney(Customer user, BankAccountDB account, Transaction transaction, BigDecimal amount,
+			String accountType) {
+		try {
+			transactionTemplate.executeWithoutResult(status -> insertPending(account, transaction, amount,
+					"creditfunds", "Deposit money to account"));
+			return true;
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	/** Pending debit + hold on the account, atomically (legacy: JDBC transaction, here a MongoDB transaction). */
+	public boolean withdrawMoney(Customer user, BankAccountDB account, Transaction transaction, BigDecimal amount,
+			String accountType) {
+		try {
+			transactionTemplate.executeWithoutResult(status -> {
+				insertPending(account, transaction, amount, "debitfunds", "Withdrawal of money from account");
+				mongoTemplate.updateFirst(
+						Query.query(where("external_users_id").is(user.getId()).and("account_type").is(accountType)),
+						new Update().inc("hold", amount), BankAccountDB.class);
+			});
+			return true;
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	private void insertPending(BankAccountDB account, Transaction transaction, BigDecimal amount, String type,
+			String description) {
+		Timestamp createdDateTime = new Timestamp(System.currentTimeMillis());
+		Transaction pending = new Transaction();
+		pending.setId(sequences.next(MongoCollections.TRANSACTIONS));
+		pending.setPayer_id(account.getAccount_number());
+		pending.setPayee_id(account.getAccount_number());
+		pending.setAmount(amount);
+		pending.setHashvalue("hasvalue");
+		pending.setTransaction_type(type);
+		pending.setDescription(description);
+		pending.setStatus("pending");
+		pending.setApprover("External user");
+		pending.setCritical(false);
+		pending.setTimestamp_created(createdDateTime);
+		pending.setTimestamp_updated(createdDateTime);
+		pending.setStage(MongoCollections.PENDING);
+		mongoTemplate.insert(pending);
+		transaction.setId(pending.getId());
+	}
+
+	private static BankAccount.AccountType accountType(String type) {
+		if (type == null) {
+			return null;
+		}
+		String t = type.toUpperCase();
+		if (t.startsWith("CHECKING")) {
+			return BankAccount.AccountType.CHECKING;
+		}
+		try {
+			return BankAccount.AccountType.valueOf(t);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
 }
-

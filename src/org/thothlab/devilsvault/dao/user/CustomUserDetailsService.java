@@ -1,61 +1,34 @@
 package org.thothlab.devilsvault.dao.user;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.thothlab.devilsvault.db.model.UserAuthentication;
 
-public class CustomUserDetailsService extends JdbcDaoImpl {
+/** Loads users (with accountNonLocked / enabled flags and their single role) from the {@code users} collection. */
+@Service("customUserDetailsService")
+public class CustomUserDetailsService implements UserDetailsService {
 
-	@Override
-	public void setUsersByUsernameQuery(String usersByUsernameQueryString) {
-		super.setUsersByUsernameQuery(usersByUsernameQueryString);
+	private final MongoTemplate mongoTemplate;
+
+	public CustomUserDetailsService(MongoTemplate mongoTemplate) {
+		this.mongoTemplate = mongoTemplate;
 	}
 
 	@Override
-	public void setAuthoritiesByUsernameQuery(String queryString) {
-		super.setAuthoritiesByUsernameQuery(queryString);
-	}
-
-	//override to pass get accountNonLocked  
-	@Override
-	public List<UserDetails> loadUsersByUsername(String username) {
-		return getJdbcTemplate().query(super.getUsersByUsernameQuery(), new String[] { username },
-				new RowMapper<UserDetails>() {
-					public UserDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
-						String username = rs.getString("username");
-						String password = rs.getString("password");
-						boolean enabled = rs.getBoolean("enabled");
-						boolean accountNonExpired = rs.getBoolean("accountNonExpired");
-						boolean credentialsNonExpired = rs.getBoolean("credentialsNonExpired");
-						boolean accountNonLocked = rs.getBoolean("accountNonLocked");
-
-						return new User(username, password, enabled, accountNonExpired, credentialsNonExpired,
-								accountNonLocked, AuthorityUtils.NO_AUTHORITIES);
-					}
-
-				});
-	}
-
-	//override to pass accountNonLocked
-	@Override
-	public UserDetails createUserDetails(String username, UserDetails userFromUserQuery,
-			List<GrantedAuthority> combinedAuthorities) {
-		String returnUsername = userFromUserQuery.getUsername();
-
-		if (super.isUsernameBasedPrimaryKey()) {
-			returnUsername = username;
+	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+		UserAuthentication user = username == null ? null : mongoTemplate.findById(username, UserAuthentication.class);
+		if (user == null || user.getRole() == null) {
+			throw new UsernameNotFoundException("Username " + username + " not found");
 		}
-
-		return new User(returnUsername, userFromUserQuery.getPassword(), userFromUserQuery.isEnabled(),
-				userFromUserQuery.isAccountNonExpired(), userFromUserQuery.isCredentialsNonExpired(),
-				userFromUserQuery.isAccountNonLocked(), combinedAuthorities);
+		return new User(user.getUsername(), user.getPassword(), user.getEnabled() == 1, user.getAccountNonExpired() == 1,
+				user.getCredentialsNonExpired() == 1, user.getAccountNonLocked() == 1,
+				List.of(new SimpleGrantedAuthority(user.getRole())));
 	}
-
 }

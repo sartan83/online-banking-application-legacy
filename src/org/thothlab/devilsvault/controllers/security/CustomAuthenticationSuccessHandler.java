@@ -2,12 +2,12 @@ package org.thothlab.devilsvault.controllers.security;
 
 import java.io.IOException;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
@@ -27,7 +27,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 //        if(verify){
         	HttpSession session = arg0.getSession();
             User authUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+            DaoContext ctx = DaoContext.open();
             
             String role_raw = arg2.getAuthorities().toString();
             String role = role_raw.substring(1, role_raw.length() -1 );
@@ -41,7 +41,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
     			session.setAttribute("role", role);
     			arg1.setStatus(HttpServletResponse.SC_OK);
     			ctx.close();
-    			arg1.sendRedirect("/CSE545-SS/employee/home");
+    			arg1.sendRedirect(arg0.getContextPath() + "/employee/home");
     		}else{
     			InternalCustomerDAO internalCustomerDao = ctx.getBean("CustomerDAOForInternal", InternalCustomerDAO.class);
     			String username = authUser.getUsername();
@@ -51,7 +51,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
     			session.setAttribute("role", role);
     			arg1.setStatus(HttpServletResponse.SC_OK);
     			ctx.close();
-    			arg1.sendRedirect("/CSE545-SS/customer/home");
+    			arg1.sendRedirect(arg0.getContextPath() + "/customer/home");
     		}
 //        }else{
 //        	arg1.sendRedirect("captchafailed");

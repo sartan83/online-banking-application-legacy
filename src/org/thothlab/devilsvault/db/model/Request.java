@@ -1,8 +1,19 @@
 package org.thothlab.devilsvault.db.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+
 import java.sql.Date;
 
+@CompoundIndex(name = "scope_stage_id", def = "{'scope': 1, 'stage': 1, 'id': 1}", unique = true)
+@Document("requests")
 public class Request {
+	@Id
+	private String mongoId;
+	@Field("id")
 	private int id;
 	private int requesterid;
 	private String request_type;
@@ -88,4 +99,27 @@ public class Request {
 		this.timestamp_updated = timestamp_updated;
 	}
 	
+
+	private String scope;
+	public String getScope() {
+		return scope;
+	}
+	public void setScope(String scope) {
+		this.scope = scope;
+	}
+
+	private String stage;
+	public String getStage() {
+		return stage;
+	}
+	public void setStage(String stage) {
+		this.stage = stage;
+	}
+
+	public String getMongoId() {
+		return mongoId;
+	}
+	public void setMongoId(String mongoId) {
+		this.mongoId = mongoId;
+	}
 }

@@ -1,0 +1,37 @@
+[
+  {
+    _id: 1001,
+    external_users_id: 1,
+    account_type: 'CHECKING',
+    balance: Decimal128('5000.00'),
+    hold: Decimal128('250.00'),
+    _class: 'org.thothlab.devilsvault.db.model.BankAccountDB'
+  },
+  {
+    _id: 1004,
+    external_users_id: 2,
+    account_type: 'CHECKING',
+    balance: Decimal128('1200.00'),
+    hold: Decimal128('0.00'),
+    _class: 'org.thothlab.devilsvault.db.model.BankAccountDB'
+  }
+]
+[
+  {
+    _id: ObjectId('6aecb3b8b8f007879339061c'),
+    id: 3,
+    payer_id: 1001,
+    payee_id: 1004,
+    amount: Decimal128('250'),
+    hashvalue: '',
+    transaction_type: 'externalFundTfr',
+    description: 'E2E demo transfer',
+    status: 'pending',
+    approver: '',
+    critical: false,
+    timestamp_created: ISODate('2026-11-05T16:50:00.363Z'),
+    timestamp_updated: ISODate('2026-11-05T16:50:00.363Z'),
+    stage: 'pending',
+    _class: 'org.thothlab.devilsvault.db.model.Transaction'
+  }
+]

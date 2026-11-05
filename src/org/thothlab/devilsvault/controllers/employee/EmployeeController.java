@@ -7,9 +7,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.thothlab.devilsvault.config.DaoContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -66,9 +66,8 @@ public class EmployeeController {
 		setGlobals(request);
 		try {
 			if (role.equalsIgnoreCase("ROLE_REGULAR")) {
-				ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
-				ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext(
-						"jdbc/config/DaoDetails.xml");
+				DaoContext ctx = DaoContext.open();
+				DaoContext ctx_log = DaoContext.open();
 				LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 				DatabaseLog dblog = new DatabaseLog();
 				dblog.setActivity("Entered in /employee/home...");
@@ -104,7 +103,7 @@ public class EmployeeController {
 				ctx.close();
 				return model;
 			} else if (role.equalsIgnoreCase("ROLE_MANAGER")) {
-				ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+				DaoContext ctx = DaoContext.open();
 				PendingStatisticsDao pendingStatisticsDao = ctx.getBean("pendingStatistics",
 						PendingStatisticsDao.class);
 				HashMap<String, Integer> stats = new HashMap<String, Integer>();
@@ -128,7 +127,7 @@ public class EmployeeController {
 				ctx.close();
 				return model;
 			} else if (role.equalsIgnoreCase("ROLE_ADMIN")) {
-				ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+				DaoContext ctx = DaoContext.open();
 				PendingStatisticsDao pendingStatisticsDao = ctx.getBean("pendingStatistics",
 						PendingStatisticsDao.class);
 				HashMap<String, Integer> stats = new HashMap<String, Integer>();
@@ -155,7 +154,7 @@ public class EmployeeController {
 	public ModelAndView ManagementContoller(HttpServletRequest request) throws UnsupportedEncodingException {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/management...");
@@ -163,7 +162,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 			if (role.equalsIgnoreCase("ROLE_REGULAR")) {
-				ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+				DaoContext ctx = DaoContext.open();
 				AthorizationDaoImpl authorizationDAO = ctx.getBean("AuthorizationDao", AthorizationDaoImpl.class);
 				List<Authorization> pendingList = authorizationDAO.getAllPendingAuthorization(userID);
 				ctx.close();
@@ -173,7 +172,7 @@ public class EmployeeController {
 				model.addObject("completeList", completeList);
 				return model;
 			} else if (role.equalsIgnoreCase("ROLE_MANAGER")) {
-				ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+				DaoContext ctx = DaoContext.open();
 				AthorizationDaoImpl authorizationDAO = ctx.getBean("AuthorizationDao", AthorizationDaoImpl.class);
 				List<Authorization> pendingList = authorizationDAO.getAllPendingAuthorizationManager();
 				ctx.close();
@@ -196,14 +195,14 @@ public class EmployeeController {
 			@RequestParam("customerID") String id) {
 		try {
 			setGlobals(request);
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/searchexternaluser...");
 			dblog.setDetails("Searching for external user with ID : " + id);
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			CustomerDAO customerdao = ctx.getBean("customerDAO", CustomerDAO.class);
 			Customer customer = new Customer();
 			customer = customerdao.getCustomer(Integer.parseInt(id));
@@ -221,14 +220,14 @@ public class EmployeeController {
 	public ModelAndView SearchInternalUser(HttpServletRequest request, @RequestParam("employeeID") String id,
 			RedirectAttributes redir) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/searchinternaluser...");
 			dblog.setDetails("Searching for internal user with ID : " + id);
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalUserDaoImpl internalDao = ctx.getBean("EmployeeDAOForInternal", InternalUserDaoImpl.class);
 			InternalUser user = new InternalUser();
 			user = internalDao.getUserById(Integer.valueOf(id));
@@ -246,7 +245,7 @@ public class EmployeeController {
 	public ModelAndView viewTransactions(@RequestParam("extUserID") String extuserID, HttpServletRequest request) {
 
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/viewtransaction...");
@@ -254,7 +253,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalCustomerDAO internalCustomerDao = ctx.getBean("CustomerDAOForInternal", InternalCustomerDAO.class);
 
 			Integer payerID = Integer.parseInt(extuserID);
@@ -296,7 +295,7 @@ public class EmployeeController {
 			@RequestParam("payeeID") String payeeID, @RequestParam("amount") String amount,
 			HttpServletRequest request) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/processAccTransaction...");
@@ -306,7 +305,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDao = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 			ModelAndView model = new ModelAndView("employeePages/AccountTransactions");
@@ -458,7 +457,7 @@ public class EmployeeController {
 			@RequestParam("extUserID") String extuserID, HttpServletRequest request) {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/processAcctransactionCreditCard...");
@@ -466,7 +465,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDao = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 			ModelAndView model = new ModelAndView("employeePages/AccountTransactions");
@@ -590,7 +589,7 @@ public class EmployeeController {
 			@RequestParam("extUserID") String extuserID, HttpServletRequest request) {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/processtransaction...");
@@ -599,7 +598,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDao = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 
@@ -651,7 +650,7 @@ public class EmployeeController {
 			@RequestParam("extUserID") String extuserID, HttpServletRequest request) {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Processing Debit/Credit Fund");
@@ -660,7 +659,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 			ctx_log.close();
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDao = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 
@@ -718,7 +717,7 @@ public class EmployeeController {
 			@RequestParam("extUserID") String extuserID, HttpServletRequest request) {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in process Debit/Credit");
@@ -727,7 +726,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDao = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 			InternalCustomerDAO internalCustomerDao = ctx.getBean("CustomerDAOForInternal", InternalCustomerDAO.class);
@@ -832,7 +831,7 @@ public class EmployeeController {
 			@RequestParam("amount") String amount, HttpServletRequest request) {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/processtransactionNonCritical...");
@@ -842,7 +841,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDao = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 			ModelAndView model = new ModelAndView();
@@ -949,7 +948,7 @@ public class EmployeeController {
 			@RequestParam("extUserID") String extuserID, HttpServletRequest request) {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/processtransactionCreditCard...");
@@ -957,7 +956,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDao = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 			ModelAndView model = new ModelAndView();
@@ -1034,7 +1033,7 @@ public class EmployeeController {
 			@RequestParam("extUserID") String extuserID, HttpServletRequest request) throws ParseException {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/newaccTransaction...");
@@ -1053,7 +1052,7 @@ public class EmployeeController {
 			String payerAccountType = accountNo.split(":")[1].trim();
 			int receiverAcountNumber = Integer.parseInt(receiverAccount);
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalCustomerDAO internalCustomerDao = ctx.getBean("CustomerDAOForInternal", InternalCustomerDAO.class);
 			List<Integer> extuserIDs = new ArrayList<Integer>();
 			extuserIDs.add(Integer.parseInt(extuserID));
@@ -1149,7 +1148,7 @@ public class EmployeeController {
 			@RequestParam("extUserID") String extuserID, @RequestParam("userType") String userType) {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/viewaccountdetails...");
@@ -1167,7 +1166,7 @@ public class EmployeeController {
 					return model;
 				}
 			}
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ModelAndView model = new ModelAndView("employeePages/ExtAccountDetails");
 			if (userType.equalsIgnoreCase("internal")) {
 				InternalUserDaoImpl internaluserdeoimpl = ctx.getBean("EmployeeDAOForInternal",
@@ -1210,7 +1209,7 @@ public class EmployeeController {
 			@RequestParam("requestType") String requestType, HttpServletRequest request,
 			@RequestParam("userType") String userType, @RequestParam("newValue") String newValue) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/addrequest...");
@@ -1235,8 +1234,7 @@ public class EmployeeController {
 			}
 			if (userType.equalsIgnoreCase("external")) {
 				if (isAuthorized) {
-					ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
-							"jdbc/config/DaoDetails.xml");
+					DaoContext ctx = DaoContext.open();
 					CustomerDAO customerDAO = ctx.getBean("customerDAO", CustomerDAO.class);
 					InternalRequestDaoImpl internalrequestDao = ctx.getBean("internalRequestDao",
 							InternalRequestDaoImpl.class);
@@ -1268,7 +1266,7 @@ public class EmployeeController {
 				}
 
 			} else if (userType.equalsIgnoreCase("internal")) {
-				ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+				DaoContext ctx = DaoContext.open();
 				InternalUserDaoImpl internalDao = ctx.getBean("EmployeeDAOForInternal", InternalUserDaoImpl.class);
 				InternalRequestDaoImpl internalrequestDao = ctx.getBean("internalRequestDao",
 						InternalRequestDaoImpl.class);
@@ -1310,14 +1308,14 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/deletecustomer", method = RequestMethod.POST)
 	public String deleteCustomer(HttpServletRequest request, @RequestParam("extUserID") String extuserID) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/deletecustomer...");
 			dblog.setDetails("Delete customer with external user id : " + extuserID);
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalCustomerDAO internalCustomer = ctx.getBean("CustomerDAOForInternal", InternalCustomerDAO.class);
 			internalCustomer.deleteCustomer(extuserID);
 			ctx.close();
@@ -1334,7 +1332,7 @@ public class EmployeeController {
 			@RequestParam("requestType") String requestType) throws UnsupportedEncodingException {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/newauthorizationreq...");
@@ -1343,7 +1341,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			CustomerDAO customerdao = ctx.getBean("customerDAO", CustomerDAO.class);
 			ModelAndView model = new ModelAndView();
 			String msg = "";
@@ -1386,7 +1384,7 @@ public class EmployeeController {
 	public String ProcessAuthorization(HttpServletRequest httprequest, @RequestParam("requestType") String requestType,
 			@RequestParam("transactionID") String auth_id) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/processauthorization...");
@@ -1395,7 +1393,7 @@ public class EmployeeController {
 			dblog.setUserid((int) httprequest.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			AthorizationDaoImpl authorizationDao = ctx.getBean("AuthorizationDao", AthorizationDaoImpl.class);
 			Authorization request = authorizationDao.getByID(Integer.valueOf(auth_id));
 			switch (requestType) {
@@ -1420,7 +1418,7 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/revokeauthorization", method = RequestMethod.POST)
 	public String RevokeAuthorization(HttpServletRequest request, @RequestParam("authID") String auth_id) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/revokeauthorization...");
@@ -1428,7 +1426,7 @@ public class EmployeeController {
 			dblog.setUserid((int) request.getSession().getAttribute("userID"));
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			AthorizationDaoImpl authorizationDao = ctx.getBean("AuthorizationDao", AthorizationDaoImpl.class);
 			authorizationDao.deleteByID(Integer.valueOf(auth_id), "authorization_completed");
 			ctx.close();
@@ -1449,14 +1447,14 @@ public class EmployeeController {
 	public ModelAndView UserDetailsContoller(HttpServletRequest request) {
 		try {
 			setGlobals(request);
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/userdetails...");
 			dblog.setDetails("Fetch user details for user with ID : " + userID);
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalUserDaoImpl internalDao = ctx.getBean("EmployeeDAOForInternal", InternalUserDaoImpl.class);
 
 			InternalUser internaluser = internalDao.getUserById(userID);
@@ -1485,7 +1483,7 @@ public class EmployeeController {
 		try {
 
 			ModelAndView model = new ModelAndView();
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			setGlobals(request);
 			UserAuthenticationDaoImpl userauthenticationDao = ctx.getBean("userAuthenticationDao",
 					UserAuthenticationDaoImpl.class);
@@ -1503,14 +1501,14 @@ public class EmployeeController {
 	@RequestMapping("/employee/transaction")
 	public ModelAndView TransactionContoller() {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/transaction...");
 			dblog.setDetails("Fetch all completed and pending transactions");
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDAO = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 			List<Transaction> complete_list = transactionDAO.getAllCompleted();
@@ -1529,14 +1527,14 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/transactionsearch", method = RequestMethod.POST)
 	public ModelAndView TransactionSearch(@RequestParam("transactionID") String transactionID) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/transactionsearch...");
 			dblog.setDetails("Search transaction with ID : " + transactionID);
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDAO = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 			List<Transaction> transactionCompleteList = null;
@@ -1558,14 +1556,14 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/transactionapprove", method = RequestMethod.POST)
 	public ModelAndView TransactionApproveContoller(@RequestParam("transactionID") String transactionID) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/transactionapprove...");
 			dblog.setDetails("Approve transaction with ID : " + transactionID);
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDAO = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 			transactionDAO.approveTransaction(Integer.parseInt(transactionID), "transaction_pending");
@@ -1582,14 +1580,14 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/transactionreject", method = RequestMethod.POST)
 	public ModelAndView TransactionRejectContoller(@RequestParam("transactionID") String transactionID) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/transactionreject...");
 			dblog.setDetails("Reject transaction with ID : " + transactionID);
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalTransactionDaoImpl transactionDAO = ctx.getBean("TransactionSpecificDao",
 					InternalTransactionDaoImpl.class);
 			transactionDAO.rejectTransaction(Integer.parseInt(transactionID), "transaction_pending");
@@ -1607,14 +1605,14 @@ public class EmployeeController {
 	public ModelAndView PendingRequestContoller(HttpServletRequest request) {
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/pendingrequest...");
 			dblog.setDetails("Fetch pending requests");
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExternalRequestDaoImpl externalRequestDao = ctx.getBean("externalRequestDao", ExternalRequestDaoImpl.class);
 			InternalRequestDaoImpl internalRequestDao = ctx.getBean("internalRequestDao", InternalRequestDaoImpl.class);
 			List<Request> externalRequestList = externalRequestDao.getAllPending();
@@ -1640,10 +1638,10 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/processrequestinternal", method = RequestMethod.POST)
 	public ModelAndView PendingRequestApproveContoller(HttpServletRequest request, RedirectAttributes redir,
 			@RequestParam("requestID") String requestID, @RequestParam("action") String action) {
-		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+		DaoContext ctx = DaoContext.open();
 		setGlobals(request);
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/processrequestinternal...");
@@ -1677,14 +1675,14 @@ public class EmployeeController {
 	public ModelAndView PendingRequestRejectContoller(HttpServletRequest request, RedirectAttributes redir,
 			@RequestParam("requestID") String requestID, @RequestParam("action") String action) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/processrequestexternal...");
 			dblog.setDetails("Process request with ID : " + requestID + ", action is : " + action);
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			setGlobals(request);
 			ModelAndView model = new ModelAndView();
 			String msg = "";
@@ -1712,7 +1710,7 @@ public class EmployeeController {
 	public ModelAndView CompletedRequestContoller(HttpServletRequest request) {
 		try {
 			setGlobals(request);
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExternalRequestDaoImpl externalRequestDao = ctx.getBean("externalRequestDao", ExternalRequestDaoImpl.class);
 			InternalRequestDaoImpl internalRequestDao = ctx.getBean("internalRequestDao", InternalRequestDaoImpl.class);
 			List<Request> externalRequestList = new ArrayList<Request>();
@@ -1736,13 +1734,13 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/pendingrequestsearch", method = RequestMethod.POST)
 	public ModelAndView PendingRequestSearch(@RequestParam("requestID") String requestID) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/pendingrequestsearch...");
 			dblog.setDetails("Search for pending request with ID : " + requestID);
 			logDao.save(dblog, "internal_log");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExternalRequestDaoImpl externalRequestDao = ctx.getBean("externalRequestDao", ExternalRequestDaoImpl.class);
 			InternalRequestDaoImpl internalRequestDao = ctx.getBean("internalRequestDao", InternalRequestDaoImpl.class);
 			List<Request> externalRequestList = null;
@@ -1762,14 +1760,14 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/completedrequestsearch", method = RequestMethod.POST)
 	public ModelAndView CompletedRequestSearch(@RequestParam("requestID") String requestID) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/completedrequestsearch...");
 			dblog.setDetails("Search for completed request with ID : " + requestID);
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExternalRequestDaoImpl externalRequestDao = ctx.getBean("externalRequestDao", ExternalRequestDaoImpl.class);
 			InternalRequestDaoImpl internalRequestDao = ctx.getBean("internalRequestDao", InternalRequestDaoImpl.class);
 			List<Request> externalRequestList = null;
@@ -1789,7 +1787,7 @@ public class EmployeeController {
 	@RequestMapping("/employee/openrequests")
 	public ModelAndView OpenRequestContoller() {
 		try {
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExternalRequestDaoImpl requestDAO = ctx.getBean("externalRequestDao", ExternalRequestDaoImpl.class);
 			List<Request> requestList = requestDAO.getAllPending();
 			ModelAndView model = new ModelAndView("employeePages/employeeRequest");
@@ -1804,7 +1802,7 @@ public class EmployeeController {
 	@RequestMapping("/employee/createrequest")
 	public ModelAndView CreateRequestContoller(Request request) {
 		try {
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			ExternalRequestDaoImpl requestDAO = ctx.getBean("externalRequestDao", ExternalRequestDaoImpl.class);
 			boolean result = requestDAO.save(request, "external");
 			ModelAndView model = new ModelAndView("employeePages/employeeRequest");
@@ -1822,7 +1820,7 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/systemlogs")
 	public ModelAndView getLogs() {
 		try {
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			LogDaoImpl logDao = ctx.getBean("DatabaseLogDao", LogDaoImpl.class);
 			List<DatabaseLog> databaseLogInternal = logDao.getLogs("internal");
 			List<DatabaseLog> databaseLogExternal = logDao.getLogs("external");
@@ -1840,7 +1838,7 @@ public class EmployeeController {
 	public ModelAndView searchLogs(RedirectAttributes redir, @RequestParam("userid") int userid,
 			@RequestParam("type") String type) {
 		try {
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			LogDaoImpl logDao = ctx.getBean("DatabaseLogDao", LogDaoImpl.class);
 			List<DatabaseLog> databaseLog = logDao.getByUserId(userid, type);
 			ModelAndView model = new ModelAndView();
@@ -1862,7 +1860,7 @@ public class EmployeeController {
 	public ModelAndView LoginManagement(HttpServletRequest request) {
 		try {
 			setGlobals(request);
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			UserLoginManagementDaoImpl loginDao = ctx.getBean("UserLoginManagementDao",
 					UserLoginManagementDaoImpl.class);
 			List<UserAuthentication> login_list = new ArrayList<UserAuthentication>();
@@ -1903,13 +1901,13 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/unblocklogin", method = RequestMethod.POST)
 	public ModelAndView unBlockLogin(@RequestParam("username") String username, RedirectAttributes redir) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/unblocklogin...");
 			dblog.setDetails("Username : " + username);
 			logDao.save(dblog, "internal_log");
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			UserLoginManagementDaoImpl usermanagementDao = ctx.getBean("UserLoginManagementDao",
 					UserLoginManagementDaoImpl.class);
 			usermanagementDao.unlockUserAccount(username, "account");
@@ -1925,14 +1923,14 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/unblockotp", method = RequestMethod.POST)
 	public ModelAndView unBlockOtp(@RequestParam("username") String username, RedirectAttributes redir) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/unblockotp...");
 			dblog.setDetails("Username : " + username);
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			UserLoginManagementDaoImpl usermanagementDao = ctx.getBean("UserLoginManagementDao",
 					UserLoginManagementDaoImpl.class);
 			usermanagementDao.unlockUserAccount(username, "otp");
@@ -1948,14 +1946,14 @@ public class EmployeeController {
 	@RequestMapping(value = "/employee/deleteemployee", method = RequestMethod.POST)
 	public String deleteEmployee(RedirectAttributes redir, @RequestParam("UserID") String userID) {
 		try {
-			ClassPathXmlApplicationContext ctx_log = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx_log = DaoContext.open();
 			LogDaoImpl logDao = ctx_log.getBean("DatabaseLogDao", LogDaoImpl.class);
 			DatabaseLog dblog = new DatabaseLog();
 			dblog.setActivity("Entered in /employee/deleteemployee...");
 			dblog.setDetails("Delete employee with ID : " + userID);
 			logDao.save(dblog, "internal_log");
 
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("jdbc/config/DaoDetails.xml");
+			DaoContext ctx = DaoContext.open();
 			InternalCustomerDAO internalCustomer = ctx.getBean("CustomerDAOForInternal", InternalCustomerDAO.class);
 			internalCustomer.deleteEmployee(userID);
 			redir.addFlashAttribute("error_msg", "User Deleted successfully!!!");

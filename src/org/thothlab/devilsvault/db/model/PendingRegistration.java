@@ -1,8 +1,14 @@
 package org.thothlab.devilsvault.db.model;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.util.Date;
 
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.Pattern;
 
+@Document("pending_registrations")
 public class PendingRegistration {
 	@Pattern(regexp="[^0-9]*")
 	private String firstName;
@@ -135,5 +141,14 @@ public class PendingRegistration {
 	}
 	public void setTimestamp_created(Date timestamp_created) {
 		this.timestamp_created = timestamp_created;
+	}
+
+	@Id
+	private int id;
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
 	}
 }
