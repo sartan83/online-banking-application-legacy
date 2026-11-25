@@ -6,7 +6,9 @@
   <packaging>war</packaging>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
+    <junit-jupiter.version>5.10.5</junit-jupiter.version>
+    <mockito.version>5.14.2</mockito.version>
     <spring.version>6.1.21</spring.version>
     <spring-security.version>6.3.10</spring-security.version>
   </properties>
@@ -19,6 +21,7 @@
         <excludes>
           <exclude>**/*.java</exclude>
           <exclude>main/**</exclude>
+          <exclude>test/**</exclude>
         </excludes>
       </resource>
       <resource>
@@ -34,6 +37,17 @@
           <!-- Spring 6.1 resolves @RequestParam/@PathVariable names from -parameters metadata only -->
           <parameters>true</parameters>
         </configuration>
+        <executions>
+          <execution>
+            <!-- src/ is the main source root, so keep src/test/java out of the WAR -->
+            <id>default-compile</id>
+            <configuration>
+              <excludes>
+                <exclude>test/**</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
@@ -44,8 +58,23 @@
         </configuration>
       </plugin>
       <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.8.1</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.2</version>
+        <configuration>
+          <!-- Mockito inline mock maker (static mocks of jakarta.mail.Transport) as a JDK 21 agent -->
+          <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+        </configuration>
       </plugin>
     </plugins>
   </build>
@@ -158,10 +187,55 @@
 		<artifactId>commons-codec</artifactId>
 		<version>1.17.1</version>
 	</dependency>
+
+	<!-- Test -->
 	<dependency>
-		<groupId>junit</groupId>
-		<artifactId>junit</artifactId>
-		<version>4.13.2</version>
+		<groupId>org.junit.jupiter</groupId>
+		<artifactId>junit-jupiter</artifactId>
+		<version>${junit-jupiter.version}</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.springframework</groupId>
+		<artifactId>spring-test</artifactId>
+		<version>${spring.version}</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.springframework.security</groupId>
+		<artifactId>spring-security-test</artifactId>
+		<version>${spring-security.version}</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.mockito</groupId>
+		<artifactId>mockito-core</artifactId>
+		<version>${mockito.version}</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.mockito</groupId>
+		<artifactId>mockito-junit-jupiter</artifactId>
+		<version>${mockito.version}</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.assertj</groupId>
+		<artifactId>assertj-core</artifactId>
+		<version>3.26.3</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.hamcrest</groupId>
+		<artifactId>hamcrest</artifactId>
+		<version>2.2</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>com.h2database</groupId>
+		<artifactId>h2</artifactId>
+		<version>2.3.232</version>
+		<scope>test</scope>
 	</dependency>
   </dependencies>
 </project>
