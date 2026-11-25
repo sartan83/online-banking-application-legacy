@@ -10,7 +10,7 @@ import org.thothlab.devilsvault.controllers.security.ExceptionHandlerClass;
 import org.thothlab.devilsvault.dao.transaction.TransactionDaoImpl;
 import org.thothlab.devilsvault.db.model.Transaction;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.text.ParseException;

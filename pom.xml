@@ -7,6 +7,8 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
+    <spring.version>6.1.21</spring.version>
+    <spring-security.version>6.3.10</spring-security.version>
   </properties>
   <build>
     <finalName>CSE545-SS</finalName>
@@ -29,6 +31,8 @@
         <version>3.13.0</version>
         <configuration>
           <release>${maven.compiler.release}</release>
+          <!-- Spring 6.1 resolves @RequestParam/@PathVariable names from -parameters metadata only -->
+          <parameters>true</parameters>
         </configuration>
       </plugin>
       <plugin>
@@ -46,98 +50,118 @@
     </plugins>
   </build>
   <dependencies>
-	<!-- javax.annotation (@PostConstruct) was removed from the JDK in Java 11 -->
+	<!-- Provided by Tomcat 10.1+ (Jakarta EE 10) -->
 	<dependency>
-		<groupId>javax.annotation</groupId>
-		<artifactId>javax.annotation-api</artifactId>
-		<version>1.3.2</version>
-	</dependency>
-  	<dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>jstl</artifactId>
-      <version>1.2</version>
-	</dependency>
-  	<dependency>
-		<groupId>org.springframework</groupId>
-		<artifactId>spring-core</artifactId>
-		<version>4.3.3.RELEASE</version>
+		<groupId>jakarta.servlet</groupId>
+		<artifactId>jakarta.servlet-api</artifactId>
+		<version>6.0.0</version>
+		<scope>provided</scope>
 	</dependency>
 	<dependency>
-           <!-- last javax.mail-namespace release of the reference implementation -->
-           <groupId>com.sun.mail</groupId>
-           <artifactId>jakarta.mail</artifactId>
-           <version>1.6.7</version>
-        </dependency>
+		<groupId>jakarta.annotation</groupId>
+		<artifactId>jakarta.annotation-api</artifactId>
+		<version>2.1.1</version>
+		<scope>provided</scope>
+	</dependency>
+
+	<!-- JSTL 3.0 (Jakarta) -->
 	<dependency>
-		<groupId>org.springframework</groupId>
-		<artifactId>spring-web</artifactId>
-		<version>4.3.3.RELEASE</version>
+		<groupId>jakarta.servlet.jsp.jstl</groupId>
+		<artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+		<version>3.0.0</version>
+	</dependency>
+	<dependency>
+		<groupId>org.glassfish.web</groupId>
+		<artifactId>jakarta.servlet.jsp.jstl</artifactId>
+		<version>3.0.1</version>
 	</dependency>
 
 	<dependency>
 		<groupId>org.springframework</groupId>
-		<artifactId>spring-webmvc</artifactId>
-		<version>4.3.3.RELEASE</version>
+		<artifactId>spring-core</artifactId>
+		<version>${spring.version}</version>
 	</dependency>
+	<dependency>
+		<groupId>org.springframework</groupId>
+		<artifactId>spring-context</artifactId>
+		<version>${spring.version}</version>
+	</dependency>
+	<dependency>
+		<groupId>org.springframework</groupId>
+		<artifactId>spring-web</artifactId>
+		<version>${spring.version}</version>
+	</dependency>
+	<dependency>
+		<groupId>org.springframework</groupId>
+		<artifactId>spring-webmvc</artifactId>
+		<version>${spring.version}</version>
+	</dependency>
+	<dependency>
+		<groupId>org.springframework</groupId>
+		<artifactId>spring-jdbc</artifactId>
+		<version>${spring.version}</version>
+	</dependency>
+
+	<dependency>
+		<groupId>org.springframework.security</groupId>
+		<artifactId>spring-security-core</artifactId>
+		<version>${spring-security.version}</version>
+	</dependency>
+	<dependency>
+		<groupId>org.springframework.security</groupId>
+		<artifactId>spring-security-web</artifactId>
+		<version>${spring-security.version}</version>
+	</dependency>
+	<dependency>
+		<groupId>org.springframework.security</groupId>
+		<artifactId>spring-security-config</artifactId>
+		<version>${spring-security.version}</version>
+	</dependency>
+
+	<dependency>
+		<groupId>org.hibernate.validator</groupId>
+		<artifactId>hibernate-validator</artifactId>
+		<version>8.0.2.Final</version>
+	</dependency>
+
+	<!-- Jakarta Mail 2.1 API + Eclipse Angus implementation -->
+	<dependency>
+		<groupId>jakarta.mail</groupId>
+		<artifactId>jakarta.mail-api</artifactId>
+		<version>2.1.3</version>
+	</dependency>
+	<dependency>
+		<groupId>org.eclipse.angus</groupId>
+		<artifactId>angus-mail</artifactId>
+		<version>2.0.3</version>
+	</dependency>
+
+	<!-- Jakarta JSON Processing API + Eclipse Parsson implementation -->
+	<dependency>
+		<groupId>jakarta.json</groupId>
+		<artifactId>jakarta.json-api</artifactId>
+		<version>2.1.3</version>
+	</dependency>
+	<dependency>
+		<groupId>org.eclipse.parsson</groupId>
+		<artifactId>parsson</artifactId>
+		<version>1.1.7</version>
+	</dependency>
+
 	<dependency>
 		<groupId>com.mysql</groupId>
 		<artifactId>mysql-connector-j</artifactId>
 		<version>8.4.0</version>
 	</dependency>
-    <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-context</artifactId>
-        <version>4.3.3.RELEASE</version>
-    </dependency>
-    <dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-jdbc</artifactId>
-			<version>4.3.3.RELEASE</version>
-		</dependency>
-    <!-- https://mvnrepository.com/artifact/org.hibernate/hibernate-validator -->
 	<dependency>
-	    <groupId>org.hibernate</groupId>
-	    <artifactId>hibernate-validator</artifactId>
-	    <version>5.2.4.Final</version>
+		<groupId>commons-codec</groupId>
+		<artifactId>commons-codec</artifactId>
+		<version>1.17.1</version>
 	</dependency>
 	<dependency>
-    <groupId>junit</groupId>
-    <artifactId>junit</artifactId>
-    <version>4.13.2</version>
+		<groupId>junit</groupId>
+		<artifactId>junit</artifactId>
+		<version>4.13.2</version>
 	</dependency>
-		<dependency>
-	    <groupId>org.springframework.security</groupId>
-	    <artifactId>spring-security-core</artifactId>
-	    <version>4.0.3.RELEASE</version>
-	</dependency>
-	<!-- https://mvnrepository.com/artifact/org.springframework.security/spring-security-web -->
-	<dependency>
-	    <groupId>org.springframework.security</groupId>
-	    <artifactId>spring-security-web</artifactId>
-	    <version>4.0.3.RELEASE</version>
-	</dependency>
-	<!-- https://mvnrepository.com/artifact/org.springframework.security/spring-security-config -->
-	<dependency>
-	    <groupId>org.springframework.security</groupId>
-	    <artifactId>spring-security-config</artifactId>
-	    <version>4.0.3.RELEASE</version>
-	</dependency>
-	<dependency>
-	    <groupId>org.glassfish</groupId>
-	    <artifactId>javax.json</artifactId>
-	    <version>1.0.4</version>
-	</dependency>
-	<dependency>
-	    <groupId>commons-codec</groupId>
-	    <artifactId>commons-codec</artifactId>
-	    <version>1.17.1</version>
-	</dependency>
-	<!-- https://mvnrepository.com/artifact/javax.servlet/servlet-api -->
-<dependency>
-    <groupId>javax.servlet</groupId>
-    <artifactId>servlet-api</artifactId>
-    <version>2.5</version>
-</dependency>
-	
   </dependencies>
 </project>

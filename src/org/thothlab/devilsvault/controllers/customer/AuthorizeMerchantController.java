@@ -10,7 +10,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.thothlab.devilsvault.controllers.security.ExceptionHandlerClass;
 import org.thothlab.devilsvault.dao.transaction.TransferDAO;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,7 +1,7 @@
 package org.thothlab.devilsvault.db.model;
 import java.util.Date;
 
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.Pattern;
 
 public class PendingRegistration {
 	@Pattern(regexp="[^0-9]*")
