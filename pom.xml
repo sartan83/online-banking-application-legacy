@@ -63,9 +63,10 @@
 		<version>4.3.3.RELEASE</version>
 	</dependency>
 	<dependency>
-           <groupId>javax.mail</groupId>
-           <artifactId>mail</artifactId>
-           <version>1.5.0-b01</version>
+           <!-- last javax.mail-namespace release of the reference implementation -->
+           <groupId>com.sun.mail</groupId>
+           <artifactId>jakarta.mail</artifactId>
+           <version>1.6.7</version>
         </dependency>
 	<dependency>
 		<groupId>org.springframework</groupId>
@@ -79,9 +80,9 @@
 		<version>4.3.3.RELEASE</version>
 	</dependency>
 	<dependency>
-		<groupId>mysql</groupId>
-		<artifactId>mysql-connector-java</artifactId>
-		<version>5.1.9</version>
+		<groupId>com.mysql</groupId>
+		<artifactId>mysql-connector-j</artifactId>
+		<version>8.4.0</version>
 	</dependency>
     <dependency>
         <groupId>org.springframework</groupId>
@@ -102,7 +103,7 @@
 	<dependency>
     <groupId>junit</groupId>
     <artifactId>junit</artifactId>
-    <version>4.12</version>
+    <version>4.13.2</version>
 	</dependency>
 		<dependency>
 	    <groupId>org.springframework.security</groupId>
@@ -129,7 +130,7 @@
 	<dependency>
 	    <groupId>commons-codec</groupId>
 	    <artifactId>commons-codec</artifactId>
-	    <version>1.9</version>
+	    <version>1.17.1</version>
 	</dependency>
 	<!-- https://mvnrepository.com/artifact/javax.servlet/servlet-api -->
 <dependency>
