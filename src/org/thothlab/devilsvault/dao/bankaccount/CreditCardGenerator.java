@@ -43,14 +43,14 @@ public class CreditCardGenerator {
 		String ccnumber = prefix;
 
 		while (ccnumber.length() < (length - 1)) {
-			ccnumber += new Double(Math.floor(Math.random() * 10)).intValue();
+			ccnumber += (int) Math.floor(Math.random() * 10);
 		}
 
 		String reversedCCnumberString = strrev(ccnumber);
 
 		List<Integer> reversedCCnumberList = new Vector<Integer>();
 		for (int i = 0; i < reversedCCnumberString.length(); i++) {
-			reversedCCnumberList.add(new Integer(String
+			reversedCCnumberList.add(Integer.valueOf(String
 					.valueOf(reversedCCnumberString.charAt(i))));
 		}
 
@@ -74,8 +74,7 @@ public class CreditCardGenerator {
 			pos += 2;
 		}
 
-		int checkdigit = new Double(
-				((Math.floor(sum / 10) + 1) * 10 - sum) % 10).intValue();
+		int checkdigit = (int) (((Math.floor(sum / 10) + 1) * 10 - sum) % 10);
 		ccnumber += checkdigit;
 
 		return ccnumber;
