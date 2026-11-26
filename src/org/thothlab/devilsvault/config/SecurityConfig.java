@@ -1,7 +1,5 @@
 package org.thothlab.devilsvault.config;
 
-import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
-
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,6 +13,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.thothlab.devilsvault.controllers.security.LimitLoginAuthenticationProvider;
 import org.thothlab.devilsvault.dao.user.CustomUserDetailsService;
 import org.thothlab.devilsvault.dao.user.UserDetailsDaoImpl;
@@ -34,17 +33,18 @@ public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager,
 			AuthenticationSuccessHandler customAuthenticationSuccessHandler) throws Exception {
+		PathPatternRequestMatcher.Builder path = PathPatternRequestMatcher.withDefaults();
 		http
 			.authenticationManager(authenticationManager)
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers(antMatcher("/employee/externalregistrationform")).hasAnyRole("REGULAR", "MANAGER")
-				.requestMatchers(antMatcher("/employee/internalregistrationform")).hasRole("ADMIN")
-				.requestMatchers(antMatcher("/employee/internalregister")).hasRole("ADMIN")
-				.requestMatchers(antMatcher("/employee/externalregister")).hasAnyRole("REGULAR", "MANAGER")
-				.requestMatchers(antMatcher("/employee/transaction")).hasRole("MANAGER")
-				.requestMatchers(antMatcher("/employee/systemlogs")).hasRole("ADMIN")
-				.requestMatchers(antMatcher("/employee/**")).hasAnyRole("REGULAR", "MANAGER", "ADMIN")
-				.requestMatchers(antMatcher("/customer/**")).hasAnyRole("CUSTOMER", "MERCHANT")
+				.requestMatchers(path.matcher("/employee/externalregistrationform")).hasAnyRole("REGULAR", "MANAGER")
+				.requestMatchers(path.matcher("/employee/internalregistrationform")).hasRole("ADMIN")
+				.requestMatchers(path.matcher("/employee/internalregister")).hasRole("ADMIN")
+				.requestMatchers(path.matcher("/employee/externalregister")).hasAnyRole("REGULAR", "MANAGER")
+				.requestMatchers(path.matcher("/employee/transaction")).hasRole("MANAGER")
+				.requestMatchers(path.matcher("/employee/systemlogs")).hasRole("ADMIN")
+				.requestMatchers(path.matcher("/employee/**")).hasAnyRole("REGULAR", "MANAGER", "ADMIN")
+				.requestMatchers(path.matcher("/customer/**")).hasAnyRole("CUSTOMER", "MERCHANT")
 				.anyRequest().permitAll())
 			.formLogin(form -> form
 				.loginPage(LOGIN_PAGE)

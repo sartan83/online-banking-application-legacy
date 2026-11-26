@@ -7,10 +7,10 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
-    <junit-jupiter.version>5.10.5</junit-jupiter.version>
+    <junit-jupiter.version>5.14.4</junit-jupiter.version>
     <mockito.version>5.14.2</mockito.version>
-    <spring.version>6.1.21</spring.version>
-    <spring-security.version>6.3.10</spring-security.version>
+    <spring.version>6.2.19</spring.version>
+    <spring-security.version>6.5.11</spring-security.version>
   </properties>
   <build>
     <finalName>CSE545-SS</finalName>
@@ -150,7 +150,7 @@
 	<dependency>
 		<groupId>org.hibernate.validator</groupId>
 		<artifactId>hibernate-validator</artifactId>
-		<version>8.0.2.Final</version>
+		<version>8.0.3.Final</version>
 	</dependency>
 
 	<!-- Jakarta Mail 2.1 API + Eclipse Angus implementation -->

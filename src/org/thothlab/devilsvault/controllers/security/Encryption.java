@@ -1,5 +1,6 @@
 package org.thothlab.devilsvault.controllers.security;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
@@ -15,42 +16,54 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.codec.binary.Base64;
-import org.thothlab.devilsvault.dao.userauthentication.OTPDelivery;
 
 public class Encryption {
 	
+	static final String KEYSTORE_RESOURCE = "mykeystore.jks";
+	private static final char[] KEYSTORE_PASSWORD = "password".toCharArray();
+	private static final String KEY_ALIAS = "mykey";
+
 	public static String Encode(String data) {
 		try {
-			KeyStore keyStore = KeyStore.getInstance("JCEKS");
-			InputStream stream = OTPDelivery.class.getClassLoader().getResourceAsStream("mykeystore.jks");
-			keyStore.load(stream, "password".toCharArray());
-			Key key = keyStore.getKey("mykey", "password".toCharArray());
-
-			return encryptWithAESKey(data, key.getEncoded());
-
+			return encryptWithAESKey(data, loadKey().getEncoded());
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return "encoding error";
 		}
-
 	}
 
 	public static String Decode(String encryptedData) {
 		try {
-			KeyStore keyStore = KeyStore.getInstance("JCEKS");
-			InputStream stream = OTPDelivery.class.getClassLoader().getResourceAsStream("mykeystore.jks");
-			keyStore.load(stream, "password".toCharArray());
-			Key key = keyStore.getKey("mykey", "password".toCharArray());
-
-			return decryptWithAESKey(encryptedData, key.getEncoded());
-
+			return decryptWithAESKey(encryptedData, loadKey().getEncoded());
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return "decoding error";
 		}
+	}
 
+	/** Reads the AES key from a PKCS12 keystore (JDK 9+ default), falling back to legacy JCEKS stores. */
+	static Key loadKey() throws Exception {
+		byte[] bytes;
+		try (InputStream stream = Encryption.class.getClassLoader().getResourceAsStream(KEYSTORE_RESOURCE)) {
+			if (stream == null) {
+				throw new IllegalStateException("Keystore " + KEYSTORE_RESOURCE + " not found on classpath");
+			}
+			bytes = stream.readAllBytes();
+		}
+		Exception failure = null;
+		for (String type : new String[] { "PKCS12", "JCEKS" }) {
+			try {
+				KeyStore keyStore = KeyStore.getInstance(type);
+				keyStore.load(new ByteArrayInputStream(bytes), KEYSTORE_PASSWORD);
+				Key key = keyStore.getKey(KEY_ALIAS, KEYSTORE_PASSWORD);
+				if (key != null) {
+					return key;
+				}
+			} catch (Exception e) {
+				failure = e;
+			}
+		}
+		throw new IllegalStateException("No AES key '" + KEY_ALIAS + "' in " + KEYSTORE_RESOURCE, failure);
 	}
 
 	public static String encryptWithAESKey(String data, byte[] key)

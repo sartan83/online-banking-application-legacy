@@ -178,36 +178,13 @@ public class OtpDaoImpl implements OtpDao {
 	@Override
 	public void sendEmailToUser(String email, String payeeid, BigDecimal amount) {
 		// TODO Auto-generated method stub
-		Properties prop = new Properties();
-		try {
-			prop.load(OtpDaoImpl.class.getClassLoader().getResourceAsStream("smtp.properties"));	
-			
-		} catch(FileNotFoundException fne) {
-			fne.printStackTrace();
-			return;
-		} catch(IOException ioe) {
-			ioe.printStackTrace();
-			return;
-		}
-
-		final String username = prop.getProperty("username");
-		final String password = prop.getProperty("password");
-		prop= new Properties();
-		prop.put("mail.smtp.auth", "true");
-		prop.put("mail.smtp.starttls.enable", "true");
-		prop.put("mail.smtp.host", "smtp.gmail.com");
-		prop.put("mail.smtp.port", "587");
-
-		Session session = Session.getInstance(prop, new jakarta.mail.Authenticator() {
-			protected PasswordAuthentication getPasswordAuthentication() {
-				return new PasswordAuthentication(username, password);
-			}
-		});
+		SmtpSettings smtp = SmtpSettings.load();
+		Session session = smtp.session();
 
 		try {
 
 			Message message = new MimeMessage(session);
-			message.setFrom(new InternetAddress("securebanking.ss4@gmail.com"));
+			message.setFrom(new InternetAddress(smtp.from()));
 			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(email));
 			message.setSubject("A critical transaction has been initiated");
 			{
