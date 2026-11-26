@@ -21,9 +21,9 @@ INSERT INTO external_users (id, name, address, city, state, country, pincode, ph
   (12, 'Mega Merchant', '12 Market St', 'Phoenix', 'AZ', 'USA', 85001, 4805550012, 'merchant@bank.test', 1);
 
 INSERT INTO bank_accounts (account_number, external_users_id, account_type, balance, hold) VALUES
-  (100010, 10, 'SAVINGS', 5000.00, 0), (100011, 10, 'CHECKINGS', 2500.00, 0), (100012, 10, 'CREDIT', 0, 0),
-  (100020, 11, 'SAVINGS', 1000.00, 0), (100021, 11, 'CHECKINGS', 800.00, 0),
-  (100031, 12, 'CHECKINGS', 10000.00, 0);
+  (100010, 10, 'SAVINGS', 5000.00, 0), (100011, 10, 'CHECKING', 2500.00, 0), (100012, 10, 'CREDIT', 0, 0),
+  (100020, 11, 'SAVINGS', 1000.00, 0), (100021, 11, 'CHECKING', 800.00, 0),
+  (100031, 12, 'CHECKING', 10000.00, 0);
 
 INSERT INTO credit_card_account_details (interest, credit_card_no, available_balance, last_bill_amount, due_date, apr, account_number, cycle_date, current_due_amt, credit_limit, payment) VALUES
   (0, 4532015112830366, 0, 0, DATE_ADD(CURDATE(), INTERVAL 20 DAY), 18.5, 100012, CURDATE(), 0, 5000, 0);

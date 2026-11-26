@@ -39,7 +39,9 @@ public class LogDaoImpl implements LogDao{
 			ps.setString(1,log.getActivity());
 			ps.setInt(2, log.getUserid());
 			ps.setString(3, log.getDetails());
-			ps.setDate(4, log.getTimestamp());
+			ps.setTimestamp(4, log.getTimestamp() != null
+					? new java.sql.Timestamp(log.getTimestamp().getTime())
+					: new java.sql.Timestamp(System.currentTimeMillis()));
 			int out = ps.executeUpdate();
 			if(out !=0){
 				return true;
