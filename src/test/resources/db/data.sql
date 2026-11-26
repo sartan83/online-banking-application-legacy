@@ -18,3 +18,10 @@ INSERT INTO internal_request_pending (requesterid, request_type, current_value, 
 
 INSERT INTO transaction_pending (payer_id, payee_id, amount, hashvalue, transaction_type, description, status, approver, critical, timestamp_created, timestamp_updated) VALUES
   (10, 11, 25.00, 'h1', 'debit', 'coffee', 'pending', '0', FALSE, '2016-10-10 10:00:00', '2016-10-10 10:00:00');
+
+INSERT INTO bank_accounts (account_number, external_users_id, account_type, balance, hold) VALUES
+  (100010, 10, 'SAVINGS', 5000.00, 0), (100011, 10, 'CHECKINGS', 2500.00, 100.00),
+  (100021, 11, 'CHECKINGS', 800.00, 0);
+
+INSERT INTO authorization_completed (internal_userID, external_userID, auth_Type) VALUES (1, 10, 'viewAccount');
+INSERT INTO authorization_pending (internal_userID, external_userID, auth_Type) VALUES (2, 11, 'viewAccount');

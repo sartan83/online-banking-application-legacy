@@ -75,3 +75,22 @@ CREATE TABLE otp_table (
   timestamp TIMESTAMP,
   attempts INT
 );
+
+CREATE TABLE bank_accounts (
+  account_number INT PRIMARY KEY, external_users_id INT NOT NULL, account_type VARCHAR(20) NOT NULL,
+  balance DECIMAL(15,2) NOT NULL DEFAULT 0, hold DECIMAL(15,2) NOT NULL DEFAULT 0
+);
+CREATE TABLE credit_card_account_details (
+  id INT AUTO_INCREMENT PRIMARY KEY, interest INT, credit_card_no BIGINT, available_balance INT,
+  last_bill_amount INT, due_date DATE, apr FLOAT, account_number INT, cycle_date DATE,
+  current_due_amt INT, credit_limit INT, payment INT
+);
+CREATE TABLE authorized_merchants_users (
+  merchant_id INT NOT NULL, external_user_id INT NOT NULL, PRIMARY KEY (merchant_id, external_user_id)
+);
+CREATE TABLE authorization_pending (
+  auth_id INT AUTO_INCREMENT PRIMARY KEY, internal_userID INT NOT NULL, external_userID INT NOT NULL, auth_Type VARCHAR(30) NOT NULL
+);
+CREATE TABLE authorization_completed (
+  auth_id INT AUTO_INCREMENT PRIMARY KEY, internal_userID INT NOT NULL, external_userID INT NOT NULL, auth_Type VARCHAR(30) NOT NULL
+);
